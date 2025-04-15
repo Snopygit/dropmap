@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Drop berechnen</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas {
+      margin-top: 20px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      max-width: 90vw;
+      height: auto;
+      cursor: crosshair;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>Busroute einzeichnen</h2>
+  <p>Klicke auf den Start- und Endpunkt der Busroute</p>
+  <canvas id="mapCanvas" width="900" height="900"></canvas>
+  <div class="controls">
+    <button onclick="calculateDrops()">🚀 Drop berechnen</button>
+    <button onclick="resetRoute()">🔄 Zurücksetzen</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = 'fortnite-dropmap/assets/map.png';
+
+    const dropmap = JSON.parse(localStorage.getItem('activeDropmap'));
+    const route = [];
+
+    img.onload = () => draw();
+
+    canvas.addEventListener('click', e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if (route.length < 2) route.push({ x, y });
+      draw();
+    });
+
+    function draw() {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, 900, 900);
+
+      // Route zeichnen
+      if (route.length === 2) {
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(route[0].x, route[0].y);
+        ctx.lineTo(route[1].x, route[1].y);
+        ctx.stroke();
+      }
+
+      // Drop-Ziele
+      dropmap.points.forEach(p => {
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+
+    function resetRoute() {
+      route.length = 0;
+      draw();
+    }
+
+    function calculateDrops() {
+      if (route.length < 2) return alert("Bitte Start- und Endpunkt der Route einzeichnen.");
+      const dx = route[1].x - route[0].x;
+      const dy = route[1].y - route[0].y;
+      const len = Math.hypot(dx, dy);
+
+      const unitX = dx / len;
+      const unitY = dy / len;
+
+      let best = null;
+      let bestDist = Infinity;
+      let bestDrop = null;
+
+      dropmap.points.forEach(p => {
+        const px = p.x - route[0].x;
+        const py = p.y - route[0].y;
+        const proj = px * unitX + py * unitY;
+        const projPoint = {
+          x: route[0].x + unitX * proj,
+          y: route[0].y + unitY * proj
+        };
+        const dist = Math.hypot(projPoint.x - p.x, projPoint.y - p.y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = projPoint;
+          bestDrop = p;
+        }
+      });
+
+      if (best) {
+        ctx.fillStyle = 'cyan';
+        ctx.beginPath();
+        ctx.arc(best.x, best.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = 'cyan';
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(best.x, best.y);
+        ctx.lineTo(bestDrop.x, bestDrop.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  </script>
+</body>
+</html>
