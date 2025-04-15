@@ -139,16 +139,7 @@
 
       drawArrowLine(route[0], route[1]);
 
-      // Bus-Icon in der Mitte
-      const midX = (route[0].x + route[1].x) / 2;
-      const midY = (route[0].y + route[1].y) / 2;
-      ctx.beginPath();
-      ctx.arc(midX, midY, 10, 0, Math.PI * 2);
-      ctx.fillStyle = 'white';
-      ctx.fill();
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      
 
       route.forEach(p => {
         ctx.fillStyle = '#000';
