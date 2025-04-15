@@ -63,30 +63,39 @@
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const mouseX = (e.offsetX - originX) / scale;
+      const mouseY = (e.offsetY - originY) / scale;
       scale = Math.min(Math.max(0.5, scale + delta), 3);
+      originX = e.offsetX - mouseX * scale;
+      originY = e.offsetY - mouseY * scale;
       draw();
     });
 
     canvas.addEventListener('click', e => {
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / scale;
-      const y = (e.clientY - rect.top) / scale;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left - originX) / scale;
+  const y = (e.clientY - rect.top - originY) / scale;
 
-      const index = dropmap.points.findIndex(p => Math.hypot(p.x - x, p.y - y) < 10);
-      if (index !== -1) {
-        selectedPointIndex = index;
-      } else {
-        dropmap.points.push({ x, y });
+  const index = dropmap.points.findIndex(p => Math.hypot(p.x - x, p.y - y) < 10);
+  if (index !== -1) {
+    selectedPointIndex = index;
+  } else {
+    dropmap.points.push({ x, y });
+    selectedPointIndex = dropmap.points.length - 1;
+  }
+  draw();
+});
         selectedPointIndex = dropmap.points.length - 1;
       }
       draw();
     });
 
     function draw() {
-      canvas.width = 900 * scale;
-      canvas.height = 900 * scale;
-      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      canvas.width = 900;
+      canvas.height = 900;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(scale, 0, 0, scale, originX, originY);
       ctx.drawImage(img, 0, 0, 900, 900);
 
       dropmap.points.forEach((p, i) => {
