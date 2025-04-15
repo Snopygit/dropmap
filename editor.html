@@ -19,9 +19,10 @@
       border-radius: 10px;
       max-width: 90vw;
       height: auto;
+      cursor: crosshair;
     }
     button {
-      margin: 20px;
+      margin: 20px 10px 0;
       padding: 10px 20px;
       border-radius: 8px;
       background: #333;
@@ -29,12 +30,21 @@
       border: none;
       cursor: pointer;
     }
+    .controls {
+      display: flex;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
   <h2>Dropmap bearbeiten</h2>
   <canvas id="mapCanvas" width="900" height="900"></canvas>
-  <button onclick="saveDropmap()">💾 Speichern</button>
+  <div class="controls">
+    <button onclick="saveDropmap()">💾 Speichern</button>
+    <button onclick="deleteSelected()">🗑️ Marker löschen</button>
+    <button onclick="zoomIn()">➕ Zoom</button>
+    <button onclick="zoomOut()">➖ Zoom</button>
+  </div>
 
   <script>
     const canvas = document.getElementById('mapCanvas');
@@ -42,27 +52,38 @@
     const img = new Image();
     img.src = 'fortnite-dropmap/assets/map.png';
 
-    const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
+    let dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));
     const dropmap = dropmaps[editingIndex];
+    let selectedPointIndex = null;
+    let scale = 1;
 
-    img.onload = () => {
-      draw();
-    };
+    img.onload = () => draw();
 
     canvas.addEventListener('click', e => {
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      dropmap.points.push({ x, y });
+      const x = (e.clientX - rect.left) / scale;
+      const y = (e.clientY - rect.top) / scale;
+
+      const index = dropmap.points.findIndex(p => Math.hypot(p.x - x, p.y - y) < 10);
+      if (index !== -1) {
+        selectedPointIndex = index;
+      } else {
+        dropmap.points.push({ x, y });
+        selectedPointIndex = dropmap.points.length - 1;
+      }
       draw();
     });
 
     function draw() {
+      canvas.width = 900 * scale;
+      canvas.height = 900 * scale;
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      dropmap.points.forEach(p => {
-        ctx.fillStyle = 'yellow';
+      ctx.drawImage(img, 0, 0, 900, 900);
+
+      dropmap.points.forEach((p, i) => {
+        ctx.fillStyle = i === selectedPointIndex ? 'red' : 'yellow';
         ctx.beginPath();
         ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
         ctx.fill();
@@ -77,6 +98,24 @@
       localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
       alert("Dropmap gespeichert!");
       window.location.href = 'index.html';
+    }
+
+    function deleteSelected() {
+      if (selectedPointIndex !== null) {
+        dropmap.points.splice(selectedPointIndex, 1);
+        selectedPointIndex = null;
+        draw();
+      }
+    }
+
+    function zoomIn() {
+      scale = Math.min(scale + 0.2, 3);
+      draw();
+    }
+
+    function zoomOut() {
+      scale = Math.max(scale - 0.2, 0.5);
+      draw();
     }
   </script>
 </body>
