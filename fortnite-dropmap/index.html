@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Fortnite Dropmap</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; background: #000; }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 10px;
+      font-family: sans-serif;
+      z-index: 1;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+<div id="info">Klicke: Startpunkt → Endpunkt → Zielpunkt</div>
+<canvas id="mapCanvas"></canvas>
+<script>
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const img = new Image();
+img.src = 'assets/map.png'; // Ersetze durch deine Fortnite-Karte
+
+let points = [];
+
+img.onload = () => {
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+};
+
+canvas.addEventListener('click', e => {
+  if (points.length >= 3) points = [];
+  points.push({ x: e.offsetX, y: e.offsetY });
+  redraw();
+});
+
+function redraw() {
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  // Zeichne alle Punkte
+  ctx.fillStyle = 'yellow';
+  points.forEach(p => ctx.fillRect(p.x - 5, p.y - 5, 10, 10));
+
+  // Route
+  if (points.length >= 2) {
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    ctx.lineTo(points[1].x, points[1].y);
+    ctx.stroke();
+  }
+
+  // Berechne optimalen Absprung
+  if (points.length === 3) {
+    const dropPoint = calculateDropPoint(points[0], points[1], points[2]);
+    if (dropPoint) {
+      ctx.fillStyle = 'cyan';
+      ctx.beginPath();
+      ctx.arc(dropPoint.x, dropPoint.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function calculateDropPoint(start, end, target) {
+  // Projiziere Zielpunkt auf Linie (Busroute)
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSq = dx * dx + dy * dy;
+
+  if (lengthSq === 0) return null;
+
+  const t = ((target.x - start.x) * dx + (target.y - start.y) * dy) / lengthSq;
+  const tClamped = Math.max(0, Math.min(1, t));
+
+  return {
+    x: start.x + tClamped * dx,
+    y: start.y + tClamped * dy
+  };
+}
+</script>
+</body>
+</html>
