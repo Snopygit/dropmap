@@ -99,7 +99,8 @@
       };
       dropmaps.push(newMap);
       localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      renderDropmapList();
+      localStorage.setItem('editingDropmapIndex', dropmaps.length - 1);
+      window.location.href = 'editor.html'; // Weiterleitung zur Marker-Erstellung
     }
 
     renderDropmapList();
