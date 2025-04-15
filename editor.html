@@ -1,1 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Dropmap bearbeiten</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas {
+      margin-top: 20px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      max-width: 90vw;
+      height: auto;
+    }
+    button {
+      margin: 20px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>Dropmap bearbeiten</h2>
+  <canvas id="mapCanvas" width="900" height="900"></canvas>
+  <button onclick="saveDropmap()">💾 Speichern</button>
 
+  <script>
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = 'fortnite-dropmap/assets/map.png';
+
+    const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
+    const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));
+    const dropmap = dropmaps[editingIndex];
+
+    img.onload = () => {
+      draw();
+    };
+
+    canvas.addEventListener('click', e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      dropmap.points.push({ x, y });
+      draw();
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      dropmap.points.forEach(p => {
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+
+    function saveDropmap() {
+      dropmaps[editingIndex] = dropmap;
+      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
+      alert("Dropmap gespeichert!");
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>
