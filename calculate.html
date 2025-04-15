@@ -19,7 +19,7 @@
       border-radius: 10px;
       max-width: 90vw;
       height: auto;
-      cursor: crosshair;
+      cursor: grab;
     }
     .controls {
       display: flex;
@@ -37,8 +37,7 @@
   </style>
 </head>
 <body>
-  <h2>Busroute einzeichnen</h2>
-  <p>Klicke auf den Start- und Endpunkt der Busroute</p>
+  <h2>Busroute ziehen und Drop berechnen</h2>
   <canvas id="mapCanvas" width="900" height="900"></canvas>
   <div class="controls">
     <button onclick="calculateDrops()">🚀 Drop berechnen</button>
@@ -52,34 +51,82 @@
     img.src = 'fortnite-dropmap/assets/map.png';
 
     const dropmap = JSON.parse(localStorage.getItem('activeDropmap'));
-    const route = [];
+    let scale = 1;
+    let originX = 0;
+    let originY = 0;
+    let dragging = null;
+    let offsetX, offsetY;
+
+    const route = [
+      { x: 200, y: 200 }, // Startpunkt (dragbar)
+      { x: 700, y: 700 }  // Endpunkt (dragbar)
+    ];
 
     img.onload = () => draw();
 
-    canvas.addEventListener('click', e => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      if (route.length < 2) route.push({ x, y });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const mouseX = (e.offsetX - originX) / scale;
+      const mouseY = (e.offsetY - originY) / scale;
+      scale = Math.min(Math.max(0.5, scale + delta), 3);
+      originX = e.offsetX - mouseX * scale;
+      originY = e.offsetY - mouseY * scale;
       draw();
     });
 
+    canvas.addEventListener('mousedown', e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left - originX) / scale;
+      const y = (e.clientY - rect.top - originY) / scale;
+      route.forEach((point, i) => {
+        if (Math.hypot(point.x - x, point.y - y) < 10) {
+          dragging = i;
+          offsetX = point.x - x;
+          offsetY = point.y - y;
+        }
+      });
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      dragging = null;
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (dragging !== null) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - originX) / scale;
+        const y = (e.clientY - rect.top - originY) / scale;
+        route[dragging].x = x + offsetX;
+        route[dragging].y = y + offsetY;
+        draw();
+      }
+    });
+
     function draw() {
+      canvas.width = 900;
+      canvas.height = 900;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(scale, 0, 0, scale, originX, originY);
       ctx.drawImage(img, 0, 0, 900, 900);
 
       // Route zeichnen
-      if (route.length === 2) {
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(route[0].x, route[0].y);
-        ctx.lineTo(route[1].x, route[1].y);
-        ctx.stroke();
-      }
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(route[0].x, route[0].y);
+      ctx.lineTo(route[1].x, route[1].y);
+      ctx.stroke();
 
-      // Drop-Ziele
+      route.forEach(p => {
+        ctx.fillStyle = 'red';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+
       dropmap.points.forEach(p => {
         ctx.fillStyle = 'yellow';
         ctx.beginPath();
@@ -92,16 +139,15 @@
     }
 
     function resetRoute() {
-      route.length = 0;
+      route[0] = { x: 200, y: 200 };
+      route[1] = { x: 700, y: 700 };
       draw();
     }
 
     function calculateDrops() {
-      if (route.length < 2) return alert("Bitte Start- und Endpunkt der Route einzeichnen.");
       const dx = route[1].x - route[0].x;
       const dy = route[1].y - route[0].y;
       const len = Math.hypot(dx, dy);
-
       const unitX = dx / len;
       const unitY = dy / len;
 
