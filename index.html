@@ -77,13 +77,32 @@
         label.textContent = map.name;
         div.appendChild(label);
 
-        const btn = document.createElement('button');
-        btn.textContent = '🎯 Calculate Drop';
-        btn.onclick = () => {
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '✏️ Bearbeiten';
+        editBtn.onclick = () => {
+          localStorage.setItem('editingDropmapIndex', i);
+          window.location.href = 'editor.html';
+        };
+        div.appendChild(editBtn);
+
+        const calcBtn = document.createElement('button');
+        calcBtn.textContent = '🎯 Calculate Drop';
+        calcBtn.onclick = () => {
           localStorage.setItem('activeDropmap', JSON.stringify(map));
           window.location.href = 'calculate.html';
         };
-        div.appendChild(btn);
+        div.appendChild(calcBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '🗑️ Löschen';
+        deleteBtn.onclick = () => {
+          if (confirm('Diese Dropmap wirklich löschen?')) {
+            dropmaps.splice(i, 1);
+            localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
+            renderDropmapList();
+          }
+        };
+        div.appendChild(deleteBtn);
 
         list.appendChild(div);
       });
@@ -95,12 +114,12 @@
       const newMap = {
         name,
         points: [],
-        preview: 'fortnite-dropmap/assets/map.png' // später Screenshot
+        preview: 'fortnite-dropmap/assets/map.png'
       };
       dropmaps.push(newMap);
       localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
       localStorage.setItem('editingDropmapIndex', dropmaps.length - 1);
-      window.location.href = 'editor.html'; // Weiterleitung zur Marker-Erstellung
+      window.location.href = 'editor.html';
     }
 
     renderDropmapList();
