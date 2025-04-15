@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Dropmap bearbeiten</title>
+  <title>Busroute ziehen und Drop berechnen</title>
   <style>
     body {
       margin: 0;
@@ -14,34 +14,37 @@
       align-items: center;
     }
     canvas {
-      margin-top: 20px;
+      margin-top: 10px;
       border: 2px solid #333;
       border-radius: 10px;
-      max-width: 90vw;
+      max-width: 95vw;
       height: auto;
       cursor: grab;
-    }
-    button {
-      margin: 20px 10px 0;
-      padding: 10px 20px;
-      border-radius: 8px;
-      background: #333;
-      color: white;
-      border: none;
-      cursor: pointer;
     }
     .controls {
       display: flex;
       gap: 10px;
+      margin: 20px;
+    }
+    button {
+      padding: 12px 24px;
+      border-radius: 30px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
   </style>
 </head>
 <body>
-  <h2>Dropmap bearbeiten</h2>
+  <h2>Busroute ziehen und Drop berechnen</h2>
   <canvas id="mapCanvas" width="900" height="900"></canvas>
   <div class="controls">
-    <button onclick="saveDropmap()">💾 Speichern</button>
-    <button onclick="deleteSelected()">🗑️ Marker löschen</button>
+    <button onclick="calculateDrops()">FIND BEST DROP</button>
+    <button onclick="resetRoute()">🔄 Reset</button>
   </div>
 
   <script>
@@ -49,17 +52,19 @@
     const ctx = canvas.getContext('2d');
     const img = new Image();
     img.src = 'fortnite-dropmap/assets/map.png';
-img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sicher, dass der Pfad korrekt ist.");
+    img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sicher, dass der Pfad korrekt ist.");
 
-    let dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
-    const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));
-    const dropmap = dropmaps[editingIndex];
-    let selectedPointIndex = null;
+    const dropmap = JSON.parse(localStorage.getItem('activeDropmap'));
     let scale = 1;
     let originX = 0;
     let originY = 0;
     let dragging = null;
     let offsetX, offsetY;
+
+    const route = [
+      { x: 200, y: 200 },
+      { x: 700, y: 700 }
+    ];
 
     img.onload = () => draw();
 
@@ -81,8 +86,8 @@ img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sic
       dragging = 'map';
       offsetX = e.clientX - originX;
       offsetY = e.clientY - originY;
-      dropmap.points.forEach((point, i) => {
-        if (Math.hypot(point.x - x, point.y - y) < 10) {
+      route.forEach((point, i) => {
+        if (Math.hypot(point.x - x, point.y - y) < 12) {
           dragging = i;
           offsetX = point.x - x;
           offsetY = point.y - y;
@@ -102,27 +107,35 @@ img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sic
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left - originX) / scale;
         const y = (e.clientY - rect.top - originY) / scale;
-        dropmap.points[dragging].x = x + offsetX;
-        dropmap.points[dragging].y = y + offsetY;
+        route[dragging].x = x + offsetX;
+        route[dragging].y = y + offsetY;
         draw();
       }
     });
 
-    canvas.addEventListener('click', e => {
-      if (dragging !== null) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left - originX) / scale;
-      const y = (e.clientY - rect.top - originY) / scale;
+    function drawArrowLine(start, end) {
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const len = Math.hypot(dx, dy);
+      const steps = Math.floor(len / 30);
+      const angle = Math.atan2(dy, dx);
 
-      const index = dropmap.points.findIndex(p => Math.hypot(p.x - x, p.y - y) < 10);
-      if (index !== -1) {
-        selectedPointIndex = index;
-      } else {
-        dropmap.points.push({ x, y });
-        selectedPointIndex = dropmap.points.length - 1;
+      for (let i = 0; i < steps; i++) {
+        const x = start.x + dx * (i / steps);
+        const y = start.y + dy * (i / steps);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(-5, -5);
+        ctx.lineTo(5, 0);
+        ctx.lineTo(-5, 5);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
       }
-      draw();
-    });
+    }
 
     function draw() {
       canvas.width = 900;
@@ -132,7 +145,19 @@ img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sic
       ctx.setTransform(scale, 0, 0, scale, originX, originY);
       ctx.drawImage(img, 0, 0, 900, 900);
 
-      dropmap.points.forEach((p, i) => {
+      drawArrowLine(route[0], route[1]);
+
+      route.forEach(p => {
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      dropmap.points.forEach(p => {
         ctx.fillStyle = 'yellow';
         ctx.beginPath();
         ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
@@ -143,18 +168,53 @@ img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sic
       });
     }
 
-    function saveDropmap() {
-      dropmaps[editingIndex] = dropmap;
-      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      alert("Dropmap gespeichert!");
-      window.location.href = 'index.html';
+    function resetRoute() {
+      route[0] = { x: 200, y: 200 };
+      route[1] = { x: 700, y: 700 };
+      draw();
     }
 
-    function deleteSelected() {
-      if (selectedPointIndex !== null) {
-        dropmap.points.splice(selectedPointIndex, 1);
-        selectedPointIndex = null;
-        draw();
+    function calculateDrops() {
+      const dx = route[1].x - route[0].x;
+      const dy = route[1].y - route[0].y;
+      const len = Math.hypot(dx, dy);
+      const unitX = dx / len;
+      const unitY = dy / len;
+
+      let best = null;
+      let bestDist = Infinity;
+      let bestDrop = null;
+
+      dropmap.points.forEach(p => {
+        const px = p.x - route[0].x;
+        const py = p.y - route[0].y;
+        const proj = px * unitX + py * unitY;
+        const projPoint = {
+          x: route[0].x + unitX * proj,
+          y: route[0].y + unitY * proj
+        };
+        const dist = Math.hypot(projPoint.x - p.x, projPoint.y - p.y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = projPoint;
+          bestDrop = p;
+        }
+      });
+
+      if (best) {
+        ctx.fillStyle = 'cyan';
+        ctx.beginPath();
+        ctx.arc(best.x, best.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = 'cyan';
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(best.x, best.y);
+        ctx.lineTo(bestDrop.x, bestDrop.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
     }
   </script>
