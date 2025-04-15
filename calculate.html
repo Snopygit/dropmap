@@ -79,31 +79,39 @@
     });
 
     canvas.addEventListener('mousedown', e => {
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left - originX) / scale;
-      const y = (e.clientY - rect.top - originY) / scale;
-      route.forEach((point, i) => {
-        if (Math.hypot(point.x - x, point.y - y) < 12) {
-          dragging = i;
-          offsetX = point.x - x;
-          offsetY = point.y - y;
-        }
-      });
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left - originX) / scale;
+  const y = (e.clientY - rect.top - originY) / scale;
+  dragging = 'map';
+  offsetX = e.clientX - originX;
+  offsetY = e.clientY - originY;
+  route.forEach((point, i) => {
+    if (Math.hypot(point.x - x, point.y - y) < 12) {
+      dragging = i;
+      offsetX = point.x - x;
+      offsetY = point.y - y;
+    }
+  });
+});
     });
 
     canvas.addEventListener('mouseup', () => dragging = null);
     canvas.addEventListener('mouseleave', () => dragging = null);
 
     canvas.addEventListener('mousemove', e => {
-      if (dragging !== null) {
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left - originX) / scale;
-        const y = (e.clientY - rect.top - originY) / scale;
-        route[dragging].x = x + offsetX;
-        route[dragging].y = y + offsetY;
-        draw();
-      }
-    });
+  if (dragging === 'map') {
+    originX = e.clientX - offsetX;
+    originY = e.clientY - offsetY;
+    draw();
+  } else if (dragging !== null) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left - originX) / scale;
+    const y = (e.clientY - rect.top - originY) / scale;
+    route[dragging].x = x + offsetX;
+    route[dragging].y = y + offsetY;
+    draw();
+  }
+});
 
     function drawArrowLine(start, end) {
       const dx = end.x - start.x;
