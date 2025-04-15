@@ -42,8 +42,6 @@
   <div class="controls">
     <button onclick="saveDropmap()">💾 Speichern</button>
     <button onclick="deleteSelected()">🗑️ Marker löschen</button>
-    <button onclick="zoomIn()">➕ Zoom</button>
-    <button onclick="zoomOut()">➖ Zoom</button>
   </div>
 
   <script>
@@ -57,8 +55,17 @@
     const dropmap = dropmaps[editingIndex];
     let selectedPointIndex = null;
     let scale = 1;
+    let originX = 0;
+    let originY = 0;
 
     img.onload = () => draw();
+
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      scale = Math.min(Math.max(0.5, scale + delta), 3);
+      draw();
+    });
 
     canvas.addEventListener('click', e => {
       const rect = canvas.getBoundingClientRect();
@@ -83,7 +90,7 @@
       ctx.drawImage(img, 0, 0, 900, 900);
 
       dropmap.points.forEach((p, i) => {
-        ctx.fillStyle = i === selectedPointIndex ? 'red' : 'yellow';
+        ctx.fillStyle = 'yellow';
         ctx.beginPath();
         ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
         ctx.fill();
@@ -106,16 +113,6 @@
         selectedPointIndex = null;
         draw();
       }
-    }
-
-    function zoomIn() {
-      scale = Math.min(scale + 0.2, 3);
-      draw();
-    }
-
-    function zoomOut() {
-      scale = Math.max(scale - 0.2, 0.5);
-      draw();
     }
   </script>
 </body>
