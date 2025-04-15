@@ -14,10 +14,10 @@
       align-items: center;
     }
     canvas {
-      margin-top: 20px;
+      margin-top: 10px;
       border: 2px solid #333;
       border-radius: 10px;
-      max-width: 90vw;
+      max-width: 95vw;
       height: auto;
       cursor: grab;
     }
@@ -27,12 +27,15 @@
       margin: 20px;
     }
     button {
-      padding: 10px 20px;
-      border-radius: 8px;
-      background: #333;
+      padding: 12px 24px;
+      border-radius: 30px;
+      background: #007bff;
       color: white;
       border: none;
       cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
   </style>
 </head>
@@ -40,8 +43,8 @@
   <h2>Busroute ziehen und Drop berechnen</h2>
   <canvas id="mapCanvas" width="900" height="900"></canvas>
   <div class="controls">
-    <button onclick="calculateDrops()">🚀 Drop berechnen</button>
-    <button onclick="resetRoute()">🔄 Zurücksetzen</button>
+    <button onclick="calculateDrops()">FIND BEST DROP</button>
+    <button onclick="resetRoute()">🔄 Reset</button>
   </div>
 
   <script>
@@ -58,8 +61,8 @@
     let offsetX, offsetY;
 
     const route = [
-      { x: 200, y: 200 }, // Startpunkt (dragbar)
-      { x: 700, y: 700 }  // Endpunkt (dragbar)
+      { x: 200, y: 200 },
+      { x: 700, y: 700 }
     ];
 
     img.onload = () => draw();
@@ -80,7 +83,7 @@
       const x = (e.clientX - rect.left - originX) / scale;
       const y = (e.clientY - rect.top - originY) / scale;
       route.forEach((point, i) => {
-        if (Math.hypot(point.x - x, point.y - y) < 10) {
+        if (Math.hypot(point.x - x, point.y - y) < 12) {
           dragging = i;
           offsetX = point.x - x;
           offsetY = point.y - y;
@@ -88,9 +91,8 @@
       });
     });
 
-    canvas.addEventListener('mouseup', () => {
-      dragging = null;
-    });
+    canvas.addEventListener('mouseup', () => dragging = null);
+    canvas.addEventListener('mouseleave', () => dragging = null);
 
     canvas.addEventListener('mousemove', e => {
       if (dragging !== null) {
@@ -103,6 +105,30 @@
       }
     });
 
+    function drawArrowLine(start, end) {
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const len = Math.hypot(dx, dy);
+      const steps = Math.floor(len / 30);
+      const angle = Math.atan2(dy, dx);
+
+      for (let i = 0; i < steps; i++) {
+        const x = start.x + dx * (i / steps);
+        const y = start.y + dy * (i / steps);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(-5, -5);
+        ctx.lineTo(5, 0);
+        ctx.lineTo(-5, 5);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
     function draw() {
       canvas.width = 900;
       canvas.height = 900;
@@ -111,19 +137,26 @@
       ctx.setTransform(scale, 0, 0, scale, originX, originY);
       ctx.drawImage(img, 0, 0, 900, 900);
 
-      // Route zeichnen
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 2;
+      drawArrowLine(route[0], route[1]);
+
+      // Bus-Icon in der Mitte
+      const midX = (route[0].x + route[1].x) / 2;
+      const midY = (route[0].y + route[1].y) / 2;
       ctx.beginPath();
-      ctx.moveTo(route[0].x, route[0].y);
-      ctx.lineTo(route[1].x, route[1].y);
+      ctx.arc(midX, midY, 10, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       route.forEach(p => {
-        ctx.fillStyle = 'red';
+        ctx.fillStyle = '#000';
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
         ctx.stroke();
       });
 
