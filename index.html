@@ -9,183 +9,100 @@
       font-family: sans-serif;
       background: #1a1a1a;
       color: white;
+    }
+    #tab-container {
       display: flex;
-      justify-content: center;
-      align-items: center;
       flex-direction: column;
-      height: 100vh;
+      align-items: center;
+      padding: 20px;
     }
-    #info {
-      margin-bottom: 10px;
-      background: #333;
-      padding: 8px 16px;
+    .dropmap-entry {
+      background: #2a2a2a;
+      padding: 10px;
+      margin: 10px;
       border-radius: 8px;
-    }
-    canvas {
-      border: 2px solid #555;
-      border-radius: 8px;
-      background: #000;
-      max-width: 100%;
-      height: auto;
-    }
-    #controls {
-      margin-top: 10px;
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+      align-items: center;
     }
-    button, select, input {
-      padding: 6px 10px;
+    .dropmap-entry img {
+      width: 200px;
+      height: 200px;
+      object-fit: cover;
       border-radius: 6px;
+      border: 1px solid #444;
+    }
+    .dropmap-entry button {
+      margin-top: 8px;
+      padding: 5px 10px;
+      background: #444;
       border: none;
-      background: #333;
+      border-radius: 6px;
       color: white;
+      cursor: pointer;
+    }
+    #new-map-btn {
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #333;
+      border-radius: 8px;
+      color: white;
+      border: none;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div id="info">Klicke: Startpunkt → Endpunkt → Zielpunkt</div>
-  <canvas id="mapCanvas" width="900" height="900"></canvas>
-  <div id="controls">
-    <input type="text" id="dropName" placeholder="Name für Drop">
-    <button onclick="saveDropPoint()">📌 Speichern</button>
-    <select id="dropSelect"></select>
-    <button onclick="loadDropPoint()">🎯 Ziel setzen</button>
+  <div id="tab-container">
+    <button id="new-map-btn" onclick="createNewDropmap()">➕ Neue Dropmap</button>
+    <div id="dropmap-list"></div>
   </div>
-  <img id="heightmap" src="fortnite-dropmap/assets/heightmap.png" style="display: none;">
 
   <script>
-    const canvas = document.getElementById('mapCanvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.src = 'fortnite-dropmap/assets/map.png';
+    let dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
 
-    const points = [];
-    let heightCtx;
-    let dropTargets = JSON.parse(localStorage.getItem('dropTargets') || '{}');
-    updateDropSelect();
+    function renderDropmapList() {
+      const list = document.getElementById('dropmap-list');
+      list.innerHTML = '';
+      dropmaps.forEach((map, i) => {
+        const div = document.createElement('div');
+        div.className = 'dropmap-entry';
 
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    };
+        const img = document.createElement('img');
+        img.src = map.preview || 'fortnite-dropmap/assets/map.png';
+        div.appendChild(img);
 
-    const heightmap = document.getElementById('heightmap');
-    heightmap.onload = () => {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = heightmap.width;
-      tempCanvas.height = heightmap.height;
-      heightCtx = tempCanvas.getContext('2d');
-      heightCtx.drawImage(heightmap, 0, 0);
-    };
+        const label = document.createElement('div');
+        label.textContent = map.name;
+        div.appendChild(label);
 
-    canvas.addEventListener('click', e => {
-      const rect = canvas.getBoundingClientRect();
-      const pos = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
-      if (points.length < 2) {
-        points.push(pos);
-      } else {
-        // Ziel aus Dropmap wählen
-        points[2] = pos;
-      }
-      redraw();
-    });
+        const btn = document.createElement('button');
+        btn.textContent = '🎯 Calculate Drop';
+        btn.onclick = () => {
+          localStorage.setItem('activeDropmap', JSON.stringify(map));
+          window.location.href = 'calculate.html';
+        };
+        div.appendChild(btn);
 
-    function saveDropPoint() {
-      const name = document.getElementById('dropName').value;
-      if (!name || points.length < 3) return alert("Bitte Name eingeben und Ziel wählen.");
-      dropTargets[name] = points[2];
-      localStorage.setItem('dropTargets', JSON.stringify(dropTargets));
-      updateDropSelect();
-      alert("Drop gespeichert!");
-    }
-
-    function updateDropSelect() {
-      const sel = document.getElementById('dropSelect');
-      sel.innerHTML = '';
-      Object.keys(dropTargets).forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        sel.appendChild(opt);
+        list.appendChild(div);
       });
     }
 
-    function loadDropPoint() {
-      const name = document.getElementById('dropSelect').value;
-      if (!dropTargets[name]) return;
-      points[2] = dropTargets[name];
-      redraw();
-    }
-
-    function drawIcon(x, y, color) {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    function getHeightAt(x, y) {
-      if (!heightCtx) return 100;
-      const pixel = heightCtx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
-      return pixel[0];
-    }
-
-    function calculateGlideDistance(height) {
-      return height * 1.5;
-    }
-
-    function redraw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      if (points.length >= 1) drawIcon(points[0].x, points[0].y, 'yellow');
-      if (points.length >= 2) {
-        drawIcon(points[1].x, points[1].y, 'orange');
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-        ctx.lineTo(points[1].x, points[1].y);
-        ctx.stroke();
-      }
-      if (points.length >= 3) {
-        drawIcon(points[2].x, points[2].y, 'white');
-        const drop = calculateDropPoint(points[0], points[1], points[2]);
-        if (drop) {
-          drawIcon(drop.x, drop.y, 'cyan');
-
-          const height = getHeightAt(points[2].x, points[2].y);
-          const glideDistance = calculateGlideDistance(height);
-
-          const dx = drop.x - points[2].x;
-          const dy = drop.y - points[2].y;
-          const len = Math.sqrt(dx * dx + dy * dy);
-          if (len > 0) {
-            const gx = points[2].x + (dx / len) * glideDistance;
-            const gy = points[2].y + (dy / len) * glideDistance;
-            drawIcon(gx, gy, 'lime');
-          }
-        }
-      }
-    }
-
-    function calculateDropPoint(start, end, target) {
-      const dx = end.x - start.x;
-      const dy = end.y - start.y;
-      const lengthSq = dx * dx + dy * dy;
-      if (lengthSq === 0) return null;
-      const t = ((target.x - start.x) * dx + (target.y - start.y) * dy) / lengthSq;
-      const tClamped = Math.max(0, Math.min(1, t));
-      return {
-        x: start.x + tClamped * dx,
-        y: start.y + tClamped * dy
+    function createNewDropmap() {
+      const name = prompt("Name der Dropmap:");
+      if (!name) return;
+      const newMap = {
+        name,
+        points: [],
+        preview: 'fortnite-dropmap/assets/map.png' // später Screenshot
       };
+      dropmaps.push(newMap);
+      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
+      renderDropmapList();
     }
+
+    renderDropmapList();
   </script>
 </body>
 </html>
