@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Dropmap Editor</title>
+  <title>Dropmap bearbeiten</title>
   <style>
     body {
       margin: 0;
@@ -21,62 +21,108 @@
       height: auto;
       cursor: crosshair;
     }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px;
+    }
+    button {
+      padding: 12px 24px;
+      border-radius: 30px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
     .popup {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       background: #222;
-      border: 2px solid yellow;
-      box-shadow: 0 0 20px yellow;
-      padding: 20px;
-      border-radius: 10px;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px 5px yellow;
       display: none;
       flex-direction: column;
-      gap: 10px;
+      align-items: center;
       z-index: 1000;
     }
     .popup input {
       padding: 10px;
-      border: none;
-      border-radius: 5px;
       font-size: 16px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: none;
     }
-    .popup button {
-      padding: 10px 20px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-      align-self: flex-end;
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      z-index: 999;
     }
   </style>
 </head>
 <body>
   <h2>Dropmap bearbeiten</h2>
-  <canvas id="mapCanvas" width="900" height="900"></canvas>
   <div class="controls">
-    <button onclick="showNamePopup()">💾 Dropmap speichern</button>
+    <button onclick="showPopup()">💾 Dropmap speichern</button>
   </div>
-  <div class="popup" id="namePopup">
-    <label for="mapName">Dropmap Name:</label>
-    <input id="mapName" type="text" placeholder="Gib deiner Dropmap einen Namen...">
+  <canvas id="mapCanvas" width="900" height="900"></canvas>
+
+  <div class="overlay" id="overlay"></div>
+  <div class="popup" id="popup">
+    <label for="dropmapName">Name der Dropmap:</label>
+    <input type="text" id="dropmapName" placeholder="z.B. Meine Dropmap">
     <button onclick="saveDropmapName()">Speichern</button>
   </div>
 
   <script>
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = 'fortnite-dropmap/assets/map.png';
+    img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sicher, dass der Pfad korrekt ist.");
+
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));
-    const dropmap = dropmaps[editingIndex] || { name: '', points: [] };
+    const dropmap = dropmaps[editingIndex];
 
-    function showNamePopup() {
-      document.getElementById('namePopup').style.display = 'flex';
+    img.onload = () => draw();
+
+    function draw() {
+      canvas.width = 900;
+      canvas.height = 900;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, 900, 900);
+      if (dropmap && dropmap.points) {
+        dropmap.points.forEach(p => {
+          ctx.fillStyle = 'yellow';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
+      }
+    }
+
+    function showPopup() {
+      document.getElementById('popup').style.display = 'flex';
+      document.getElementById('overlay').style.display = 'block';
     }
 
     function saveDropmapName() {
-      const name = document.getElementById('mapName').value.trim();
+      const name = document.getElementById('dropmapName').value.trim();
       if (name) {
         dropmap.name = name;
         dropmaps[editingIndex] = dropmap;
