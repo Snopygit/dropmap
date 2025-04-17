@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Dropmap bearbeiten</title>
+  <title>Dropmap Editor</title>
   <style>
     body {
       margin: 0;
@@ -21,201 +21,70 @@
       height: auto;
       cursor: crosshair;
     }
-    .controls {
-      display: flex;
-      gap: 10px;
-      margin: 20px;
-    }
-    .side-controls {
-      position: absolute;
-      right: 20px;
-      top: 100px;
-      display: flex;
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #222;
+      border: 2px solid yellow;
+      box-shadow: 0 0 20px yellow;
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
       flex-direction: column;
       gap: 10px;
+      z-index: 1000;
     }
-    button {
-      padding: 12px 24px;
-      border-radius: 30px;
+    .popup input {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    .popup button {
+      padding: 10px 20px;
       background: #007bff;
       color: white;
       border: none;
-      cursor: pointer;
-      font-weight: bold;
+      border-radius: 5px;
       font-size: 16px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-    .icon-button {
-      font-size: 20px;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      text-align: center;
-      padding: 0;
-      line-height: 48px;
-    }
-    .disabled {
-      opacity: 0.3;
-      pointer-events: none;
+      cursor: pointer;
+      align-self: flex-end;
     }
   </style>
 </head>
 <body>
-  <div style="position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 20px;">
-    <a href="index.html" style="display: flex; align-items: center; text-decoration: none; color: white;">
-      <img src="fortnite-dropmap/assets/dropmap.png" alt="Home" width="32" height="32" style="border-radius: 4px;">
-      <span style="font-weight: bold; font-size: 18px;">Home</span>
-    </a>
-  </div>
   <h2>Dropmap bearbeiten</h2>
   <canvas id="mapCanvas" width="900" height="900"></canvas>
   <div class="controls">
-    <button onclick="saveDropmap()">💾 Speichern</button>
+    <button onclick="showNamePopup()">💾 Dropmap speichern</button>
   </div>
-  <div class="side-controls">
-    <button class="icon-button" onclick="setTool('add')">➕</button>
-    <button class="icon-button" onclick="setTool('delete')">🗑️</button>
-    <button id="undoBtn" class="icon-button" onclick="undo()">↩️</button>
-    <button id="redoBtn" class="icon-button" onclick="redo()">↪️</button>
+  <div class="popup" id="namePopup">
+    <label for="mapName">Dropmap Name:</label>
+    <input id="mapName" type="text" placeholder="Gib deiner Dropmap einen Namen...">
+    <button onclick="saveDropmapName()">Speichern</button>
   </div>
 
   <script>
-    const canvas = document.getElementById('mapCanvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.src = 'fortnite-dropmap/assets/map.png';
-    img.onload = () => draw();
-    img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sicher, dass der Pfad korrekt ist.");
-
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
-    const index = parseInt(localStorage.getItem('editingDropmapIndex'));
-    const dropmap = dropmaps[index] || { name: 'Neue Dropmap', points: [] };
+    const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));
+    const dropmap = dropmaps[editingIndex] || { name: '', points: [] };
 
-    let scale = 1, originX = 0, originY = 0;
-    let draggingMap = false, offsetX = 0, offsetY = 0, draggingPoint = null;
-    let tool = 'add';
+    function showNamePopup() {
+      document.getElementById('namePopup').style.display = 'flex';
+    }
 
-    const undoStack = [];
-    const redoStack = [];
-
-    canvas.addEventListener('wheel', e => {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      const mouseX = (e.offsetX - originX) / scale;
-      const mouseY = (e.offsetY - originY) / scale;
-      scale = Math.min(Math.max(0.5, scale + delta), 3);
-      originX = e.offsetX - mouseX * scale;
-      originY = e.offsetY - mouseY * scale;
-      draw();
-    });
-
-    canvas.addEventListener('mousedown', e => {
-      const x = (e.offsetX - originX) / scale;
-      const y = (e.offsetY - originY) / scale;
-      for (let i = 0; i < dropmap.points.length; i++) {
-        const p = dropmap.points[i];
-        if (Math.hypot(p.x - x, p.y - y) < 10) {
-          if (tool === 'delete') {
-            undoStack.push({ action: 'delete', point: p });
-            dropmap.points.splice(i, 1);
-            draw();
-            updateUndoRedo();
-            return;
-          } else {
-            draggingPoint = i;
-            return;
-          }
-        }
-      }
-      if (tool === 'add') {
-        const newPoint = { x, y };
-        dropmap.points.push(newPoint);
-        undoStack.push({ action: 'add', point: newPoint });
-        redoStack.length = 0;
-        draw();
-        updateUndoRedo();
+    function saveDropmapName() {
+      const name = document.getElementById('mapName').value.trim();
+      if (name) {
+        dropmap.name = name;
+        dropmaps[editingIndex] = dropmap;
+        localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
+        window.location.href = 'index.html';
       } else {
-        offsetX = e.clientX - originX;
-        offsetY = e.clientY - originY;
-        draggingMap = true;
+        alert("Bitte gib einen Namen ein.");
       }
-    });
-
-    canvas.addEventListener('mouseup', () => {
-      draggingMap = false;
-      draggingPoint = null;
-    });
-
-    canvas.addEventListener('mousemove', e => {
-      if (draggingMap) {
-        originX = e.clientX - offsetX;
-        originY = e.clientY - offsetY;
-        draw();
-      } else if (draggingPoint !== null) {
-        const x = (e.offsetX - originX) / scale;
-        const y = (e.offsetY - originY) / scale;
-        dropmap.points[draggingPoint] = { x, y };
-        draw();
-      }
-    });
-
-    function setTool(t) {
-      tool = t;
-    }
-
-    function undo() {
-      const last = undoStack.pop();
-      if (!last) return;
-      if (last.action === 'add') {
-        dropmap.points = dropmap.points.filter(p => p !== last.point);
-      } else if (last.action === 'delete') {
-        dropmap.points.push(last.point);
-      }
-      redoStack.push(last);
-      draw();
-      updateUndoRedo();
-    }
-
-    function redo() {
-      const last = redoStack.pop();
-      if (!last) return;
-      if (last.action === 'add') {
-        dropmap.points.push(last.point);
-      } else if (last.action === 'delete') {
-        dropmap.points = dropmap.points.filter(p => p !== last.point);
-      }
-      undoStack.push(last);
-      draw();
-      updateUndoRedo();
-    }
-
-    function updateUndoRedo() {
-      document.getElementById('undoBtn').classList.toggle('disabled', undoStack.length === 0);
-      document.getElementById('redoBtn').classList.toggle('disabled', redoStack.length === 0);
-    }
-
-    function draw() {
-      canvas.width = 900;
-      canvas.height = 900;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.setTransform(scale, 0, 0, scale, originX, originY);
-      ctx.drawImage(img, 0, 0, 900, 900);
-      dropmap.points.forEach(p => {
-        ctx.fillStyle = 'yellow';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      });
-    }
-
-    function saveDropmap() {
-      dropmaps[index] = dropmap;
-      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      alert('Dropmap gespeichert!');
     }
   </script>
 </body>
