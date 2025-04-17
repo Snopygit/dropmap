@@ -57,7 +57,8 @@
       margin: 10px 0;
       border-radius: 10px;
       border: none;
-      background-color: #ccc;
+      background-color: #444;
+      color: white;
     }
     .overlay {
       position: fixed;
@@ -106,7 +107,7 @@
     <button class="icon-button" onclick="redo()">↪️</button>
   </div>
 
-  <div class="overlay" id="overlay"></div>
+  <div class="overlay" id="overlay" onclick="hidePopup(event)"></div>
   <div class="popup" id="popup">
     <label for="dropmapName">Name der Dropmap:</label>
     <input type="text" id="dropmapName" placeholder="z.B. Meine Dropmap">
@@ -203,16 +204,21 @@
       document.getElementById('overlay').style.display = 'block';
     }
 
-    function saveDropmapName() {
-      const name = document.getElementById('dropmapName').value.trim();
-      if (name) {
-        dropmap.name = name;
-        dropmaps[editingIndex] = dropmap;
-        localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-        window.location.href = 'index.html';
-      } else {
-        alert("Bitte gib einen Namen ein.");
+    function hidePopup(e) {
+      if (e.target.id === 'overlay') {
+        document.getElementById('popup').style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
       }
+    }
+
+    function saveDropmapName() {
+      const input = document.getElementById('dropmapName');
+      const name = input.value.trim();
+      const hasName = !!dropmap.name;
+      dropmap.name = name || dropmap.name || 'Neue Dropmap';
+      dropmaps[editingIndex] = dropmap;
+      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
+      window.location.href = 'index.html';
     }
   </script>
 </body>
