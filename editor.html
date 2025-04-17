@@ -85,8 +85,20 @@
     dropmap.points.forEach((_,i)=>renderMarker(i));
 
     let editingEl=null;
-    function showContextMenu(cx,cy,el){ editingEl=el; contextMenu.style.left=cx+'px'; contextMenu.style.top=cy+'px'; contextMenu.style.display='block'; }
-    document.body.addEventListener('click',()=>contextMenu.style.display='none');
+    function showContextMenu(cx, cy, el) {
+      editingEl = el;
+      // Position context menu above marker
+      const markerRect = el.getBoundingClientRect();
+      contextMenu.style.display = 'block';
+      // Allow menu to render to get dimensions
+      const menuRect = contextMenu.getBoundingClientRect();
+      const left = markerRect.left + markerRect.width/2 - menuRect.width/2;
+      const top = markerRect.top - menuRect.height - 8;
+      contextMenu.style.left = `${left}px`;
+      contextMenu.style.top = `${top}px`;
+    }
+    // Hide on click outside
+    document.body.addEventListener('click', () => contextMenu.style.display = 'none');('click',()=>contextMenu.style.display='none');
 
     function enableEdit(){ contextMenu.style.display='none'; editingEl.setAttribute('draggable','true'); }
     function deleteMarker(){ const i=+editingEl.dataset.idx; dropmap.points.splice(i,1); mapContainer.removeChild(editingEl); document.querySelectorAll('.marker').forEach((m,idx)=>m.dataset.idx=idx); updateMarkers(); contextMenu.style.display='none'; }
