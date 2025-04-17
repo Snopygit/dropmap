@@ -87,20 +87,23 @@
     let editingEl=null;
     function showContextMenu(cx, cy, el) {
       editingEl = el;
+      // calculate relative to mapContainer
       const markerRect = el.getBoundingClientRect();
-      // show menu hidden to measure
+      const containerRect = mapContainer.getBoundingClientRect();
+      // temporarily show to measure
       contextMenu.style.display = 'block';
       contextMenu.style.visibility = 'hidden';
-      // measure size
       const menuRect = contextMenu.getBoundingClientRect();
-      const left = markerRect.left + markerRect.width/2 - menuRect.width/2;
-      const top = markerRect.top - menuRect.height - 8;
+      // compute relative coords
+      const left = markerRect.left + markerRect.width/2 - menuRect.width/2 - containerRect.left;
+      const top = markerRect.top - menuRect.height - 8 - containerRect.top;
       contextMenu.style.left = `${left}px`;
       contextMenu.style.top = `${top}px`;
       // reveal
       contextMenu.style.visibility = 'visible';
     }
     // Hide on click outside
+    document.body.addEventListener('click', () => contextMenu.style.display = 'none');
     document.body.addEventListener('click', () => contextMenu.style.display = 'none');
     document.body.addEventListener('click', () => contextMenu.style.display = 'none');('click',()=>contextMenu.style.display='none');
 
