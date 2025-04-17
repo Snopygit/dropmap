@@ -49,6 +49,12 @@
       font-weight: bold;
       cursor: pointer;
     }
+    #calculateArea {
+      margin-top: 40px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
@@ -60,8 +66,11 @@
   <div class="dropmap-list" id="dropmapList"></div>
   <button onclick="createNewDropmap()">➕ Neue Dropmap</button>
 
+  <div id="calculateArea"></div>
+
   <script>
     const container = document.getElementById('dropmapList');
+    const calculateArea = document.getElementById('calculateArea');
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
 
     function renderDropmaps() {
@@ -88,7 +97,7 @@
 
     function calculate(index) {
       localStorage.setItem('editingDropmapIndex', index);
-      window.location.href = 'calculate-drop.html';
+      loadCalculator();
     }
 
     function deleteDropmap(index) {
@@ -97,6 +106,17 @@
         localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
         renderDropmaps();
       }
+    }
+
+    function loadCalculator() {
+      calculateArea.innerHTML = '';
+      const iframe = document.createElement('iframe');
+      iframe.src = 'fortnite-dropmap/calculate-drop.html';
+      iframe.width = '900';
+      iframe.height = '900';
+      iframe.style.border = 'none';
+      calculateArea.appendChild(iframe);
+      window.scrollTo(0, document.body.scrollHeight);
     }
 
     renderDropmaps();
