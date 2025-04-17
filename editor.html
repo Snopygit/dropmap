@@ -82,7 +82,7 @@
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    img.src = 'fortnite-dropmap/assets/map.png';
+    img.src = 'assets/map.png';
     img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sicher, dass der Pfad korrekt ist.");
 
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
