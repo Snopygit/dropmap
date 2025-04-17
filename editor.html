@@ -50,6 +50,7 @@
       flex-direction: column;
       align-items: center;
       z-index: 1000;
+      transition: all 0.3s ease;
     }
     .popup input {
       padding: 10px;
@@ -59,6 +60,16 @@
       border: none;
       background-color: #444;
       color: white;
+    }
+    .popup .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: none;
+      color: white;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
     }
     .overlay {
       position: fixed;
@@ -109,6 +120,7 @@
 
   <div class="overlay" id="overlay" onclick="hidePopup(event)"></div>
   <div class="popup" id="popup">
+    <button class="close-btn" onclick="closePopup()">✖</button>
     <label for="dropmapName">Name der Dropmap:</label>
     <input type="text" id="dropmapName" placeholder="z.B. Meine Dropmap">
     <button onclick="saveDropmapName()">Speichern</button>
@@ -206,9 +218,25 @@
 
     function hidePopup(e) {
       if (e.target.id === 'overlay') {
-        document.getElementById('popup').style.display = 'none';
-        document.getElementById('overlay').style.display = 'none';
+        closePopup();
       }
+    }
+
+    function closePopup() {
+      const popup = document.getElementById('popup');
+      const overlay = document.getElementById('overlay');
+      popup.style.opacity = '1';
+      popup.style.transition = 'opacity 0.3s ease';
+      popup.style.opacity = '0';
+      overlay.style.opacity = '1';
+      overlay.style.transition = 'opacity 0.3s ease';
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        popup.style.display = 'none';
+        overlay.style.display = 'none';
+        popup.style.opacity = '';
+        overlay.style.opacity = '';
+      }, 300);
     }
 
     function saveDropmapName() {
