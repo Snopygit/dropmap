@@ -5,14 +5,15 @@
   <title>Dropmap bearbeiten</title>
   <style>
     body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
-    #toolbar { margin: 10px; display: flex; gap: 10px; }
-    #markerIcon { font-size: 24px; cursor: grab; }
-    #mapContainer { position: relative; }
+    #toolbar { background: #007bff; width: 100%; padding: 10px; display: flex; gap: 10px; justify-content: center; }
+    #toolbar button, #toolbar #markerIcon { background: transparent; border: none; cursor: pointer; color: white; font-size: 24px; }
+    #mapContainer { position: relative; margin-top: 10px; }
     canvas { border: 2px solid #333; border-radius: 10px; cursor: grab; }
     .marker { position: absolute; width: 16px; height: 16px; background: yellow; border: 2px solid black; border-radius: 50%; transform: translate(-50%, -50%); cursor: pointer; }
     .context-menu { position: absolute; background: #222; padding: 8px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: none; z-index: 1000; }
     .context-menu button { display: block; width: 100%; background: none; color: white; border: none; padding: 4px 8px; text-align: left; cursor: pointer; }
-    .popup, .overlay { /* unchanged popup code... */ }
+    .overlay, .popup { display: none; }
+    /* Popup styles unchanged */
   </style>
 </head>
 <body>
@@ -25,13 +26,12 @@
   </div>
   <div id="mapContainer">
     <canvas id="mapCanvas" width="900" height="900"></canvas>
+    <div class="context-menu" id="contextMenu">
+      <button onclick="startEdit()">✏️ Bearbeiten</button>
+      <button onclick="deleteMarker()">🗑️ Löschen</button>
+    </div>
   </div>
-
-  <div class="context-menu" id="contextMenu">
-    <button onclick="startEdit()">✏️ Bearbeiten</button>
-    <button onclick="deleteMarker()">🗑️ Löschen</button>
-  </div>
-  <!-- popup & overlay here -->
+  <!-- Popup and overlay HTML here -->
 
   <script>
     const canvas = document.getElementById('mapCanvas');
@@ -39,80 +39,75 @@
     const mapContainer = document.getElementById('mapContainer');
     const markerIcon = document.getElementById('markerIcon');
     const contextMenu = document.getElementById('contextMenu');
-    let markers = [];
-    let editingMarker = null;
 
-    // Drag & drop from toolbar
-    markerIcon.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain','marker'));
-    mapContainer.addEventListener('dragover', e => e.preventDefault());
-    mapContainer.addEventListener('drop', e => {
+    // Map image + zoom & drag
+    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png';
+    let scale=1, originX=0, originY=0, dragging=false, dragStart;
+    img.onload = draw;
+    canvas.addEventListener('mousedown', e=>{ dragStart={x:e.clientX, y:e.clientY}; dragging=false; });
+    canvas.addEventListener('mousemove', e=>{
+      if(dragStart){
+        const dx=e.clientX-dragStart.x, dy=e.clientY-dragStart.y;
+        if(!dragging && Math.hypot(dx,dy)>5) dragging=true;
+        if(dragging){ originX+=dx; originY+=dy; dragStart={x:e.clientX,y:e.clientY}; draw(); }
+      }
+    });
+    canvas.addEventListener('mouseup', ()=>{ dragStart=null; canvas.style.cursor='grab'; });
+    canvas.addEventListener('wheel', e=>{
+      e.preventDefault(); const delta=e.deltaY>0?-0.1:0.1;
+      const mx=(e.offsetX-originX)/scale, my=(e.offsetY-originY)/scale;
+      scale=Math.min(Math.max(0.5, scale+delta),3);
+      originX=e.offsetX-mx*scale; originY=e.offsetY-my*scale;
+      draw();
+    });
+
+    function draw(){
+      canvas.width=900; canvas.height=900;
+      ctx.setTransform(scale,0,0,scale,originX,originY);
+      ctx.clearRect(0,0,900,900);
+      ctx.drawImage(img,0,0,900,900);
+      // existing markers repositioned by CSS, no draw here
+    }
+
+    // Marker drag/drop
+    let editingMarker=null;
+    markerIcon.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain','marker'));
+    mapContainer.addEventListener('dragover',e=>e.preventDefault());
+    mapContainer.addEventListener('drop',e=>{
       e.preventDefault();
-      if (e.dataTransfer.getData('text/plain')==='marker') {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        addMarker(x, y);
+      if(e.dataTransfer.getData('text/plain')==='marker'){
+        const rect=canvas.getBoundingClientRect();
+        const x=e.clientX-rect.left, y=e.clientY-rect.top;
+        addMarker(x,y);
+      }
+      if(e.dataTransfer.types.includes('text/marker')){
+        // dragged existing
+        const rect=canvas.getBoundingClientRect();
+        const x=e.clientX-rect.left, y=e.clientY-rect.top;
+        editingMarker.style.left=x+'px'; editingMarker.style.top=y+'px';
+        editingMarker.removeAttribute('draggable');
       }
     });
-
-    function addMarker(x, y) {
-      const el = document.createElement('div');
-      el.className = 'marker';
-      el.style.left = x+'px';
-      el.style.top = y+'px';
-      el.addEventListener('click', e=>{
-        e.stopPropagation();
-        showContextMenu(e.clientX, e.clientY, el);
-      });
+    function addMarker(x,y){
+      const el=document.createElement('div'); el.className='marker';
+      el.style.left=x+'px'; el.style.top=y+'px';
+      el.addEventListener('click',e=>{e.stopPropagation(); showContextMenu(e.clientX,e.clientY,el)});
       mapContainer.appendChild(el);
-      markers.push(el);
     }
+    function showContextMenu(cx,cy,marker){
+      editingMarker=marker;
+      contextMenu.style.left=cx+'px'; contextMenu.style.top=cy+'px';
+      contextMenu.style.display='block';
+    }
+    document.body.addEventListener('click',()=>contextMenu.style.display='none');
+    function startEdit(){ contextMenu.style.display='none'; editingMarker.setAttribute('draggable','true'); }
+    function deleteMarker(){ editingMarker.remove(); contextMenu.style.display='none'; }
 
-    function showContextMenu(cx, cy, marker) {
-      editingMarker = marker;
-      contextMenu.style.left = cx+'px';
-      contextMenu.style.top = cy+'px';
-      contextMenu.style.display = 'block';
-    }
-    document.body.addEventListener('click', ()=>contextMenu.style.display='none');
+    // Undo/redo placeholders
+    function undo(){}
+    function redo(){}
 
-    function startEdit() {
-      contextMenu.style.display='none';
-      const m = editingMarker;
-      m.setAttribute('draggable','true');
-      m.addEventListener('dragstart', dragMarkerStart);
-      m.addEventListener('dragend', dragMarkerEnd);
-    }
-    function dragMarkerStart(e) {
-      e.dataTransfer.setData('text/marker', '');
-      editingMarker = e.target;
-    }
-    function dragMarkerEnd(e) {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      editingMarker.style.left = x+'px';
-      editingMarker.style.top = y+'px';
-      editingMarker.removeAttribute('draggable');
-      editingMarker.removeEventListener('dragstart', dragMarkerStart);
-      editingMarker.removeEventListener('dragend', dragMarkerEnd);
-    }
-    mapContainer.addEventListener('dragover', e=>e.preventDefault());
-    mapContainer.addEventListener('drop', e=>{
-      if (e.dataTransfer.types.includes('text/marker')) {
-        dragMarkerEnd(e);
-      }
-    });
-
-    function deleteMarker() {
-      editingMarker.remove();
-      contextMenu.style.display='none';
-    }
-
-    // Undo/redo stubs...
-    function undo(){/*...*/} function redo(){/*...*/}
-
-    // Popup code...
+    // Popup code unchanged...
   </script>
 </body>
 </html>
