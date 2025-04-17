@@ -187,6 +187,11 @@
     });
 
     canvas.addEventListener('click', e => {
+      // Wenn gerade eine Drag-Bewegung stattgefunden hat, kein Marker setzen
+      if (dragging) {
+        dragging = false;
+        return;
+      }
       const x = (e.offsetX - originX) / scale;
       const y = (e.offsetY - originY) / scale;
 
