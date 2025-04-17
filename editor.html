@@ -110,26 +110,28 @@
     });
 
     canvas.addEventListener('mousedown', e => {
-      const x = (e.offsetX - originX) / scale;
-      const y = (e.offsetY - originY) / scale;
-      for (let i = 0; i < dropmap.points.length; i++) {
-        const p = dropmap.points[i];
-        if (Math.hypot(p.x - x, p.y - y) < 10) {
-          if (tool === 'delete') {
-            undoStack.push({ action: 'delete', point: p });
-            dropmap.points.splice(i, 1);
-            draw();
-            updateUndoRedo();
-            return;
-          } else {
-            draggingPoint = i;
-            return;
-          }
-        }
+  const x = (e.offsetX - originX) / scale;
+  const y = (e.offsetY - originY) / scale;
+  for (let i = 0; i < dropmap.points.length; i++) {
+    const p = dropmap.points[i];
+    if (Math.hypot(p.x - x, p.y - y) < 10) {
+      if (tool === 'delete') {
+        undoStack.push({ action: 'delete', point: p });
+        dropmap.points.splice(i, 1);
+        draw();
+        updateUndoRedo();
+        return;
+      } else {
+        draggingPoint = i;
+        return;
       }
-      draggingMap = true;
-      offsetX = e.clientX - originX;
-      offsetY = e.clientY - originY;
+    }
+  }
+  // nur dann auf Drag vorbereiten, wenn wirklich gezogen wird
+  offsetX = e.clientX - originX;
+  offsetY = e.clientY - originY;
+  draggingMap = false;
+});
     });
 
     canvas.addEventListener('mouseup', e => {
@@ -148,10 +150,20 @@
     });
 
     canvas.addEventListener('mousemove', e => {
-      if (draggingMap) {
-        originX = e.clientX - offsetX;
-        originY = e.clientY - offsetY;
-        draw();
+  if (!draggingMap && (Math.abs(e.movementX) > 1 || Math.abs(e.movementY) > 1)) {
+    draggingMap = true;
+  }
+  if (draggingMap) {
+    originX = e.clientX - offsetX;
+    originY = e.clientY - offsetY;
+    draw();
+  } else if (draggingPoint !== null) {
+    const x = (e.offsetX - originX) / scale;
+    const y = (e.offsetY - originY) / scale;
+    dropmap.points[draggingPoint] = { x, y };
+    draw();
+  }
+});
       } else if (draggingPoint !== null) {
         const x = (e.offsetX - originX) / scale;
         const y = (e.offsetY - originY) / scale;
