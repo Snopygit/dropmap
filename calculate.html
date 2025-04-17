@@ -53,7 +53,7 @@
 </head>
 <body>
   <div class="header">
-    <img src="fortnite-dropmaps/assets/dropmap.png" alt="Dropmap" width="32" height="32">
+    <img src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap" width="32" height="32">
     <h1>Deine Dropmaps</h1>
   </div>
 
@@ -70,7 +70,7 @@
         const card = document.createElement('div');
         card.className = 'dropmap-card';
         card.innerHTML = `
-          <img src="fortnite-dropmaps/assets/map.png" alt="Vorschau">
+          <img src="fortnite-dropmap/assets/map.png" alt="Vorschau">
           <p>${map.name || 'Unbenannt'}</p>
           <button onclick="calculate(${index})">Calculate Drop</button>
           <button onclick="deleteDropmap(${index})">🗑️ Löschen</button>
@@ -88,7 +88,7 @@
 
     function calculate(index) {
       localStorage.setItem('editingDropmapIndex', index);
-      window.location.href = 'calculate.html';
+      window.location.href = 'fortnite-dropmap/calculate.html';
     }
 
     function deleteDropmap(index) {
