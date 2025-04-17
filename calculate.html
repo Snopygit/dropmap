@@ -49,11 +49,10 @@
       font-weight: bold;
       cursor: pointer;
     }
-    #calculateArea {
+    #calculateCanvas {
       margin-top: 40px;
       border: 2px solid #333;
       border-radius: 10px;
-      overflow: hidden;
     }
   </style>
 </head>
@@ -66,12 +65,41 @@
   <div class="dropmap-list" id="dropmapList"></div>
   <button onclick="createNewDropmap()">➕ Neue Dropmap</button>
 
-  <div id="calculateArea"></div>
+  <canvas id="calculateCanvas" width="900" height="900"></canvas>
 
   <script>
     const container = document.getElementById('dropmapList');
-    const calculateArea = document.getElementById('calculateArea');
+    const canvas = document.getElementById('calculateCanvas');
+    const ctx = canvas.getContext('2d');
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
+    const img = new Image();
+    img.src = 'fortnite-dropmap/assets/map.png';
+
+    let activeDropmap = null;
+    let scale = 1, originX = 0, originY = 0;
+    let isDragging = false;
+    let dragStart = {};
+
+    img.onload = () => {
+      draw();
+    };
+
+    function draw() {
+      if (!activeDropmap) return;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(scale, 0, 0, scale, originX, originY);
+      ctx.drawImage(img, 0, 0, 900, 900);
+      activeDropmap.points.forEach(p => {
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
 
     function renderDropmaps() {
       container.innerHTML = '';
@@ -96,8 +124,8 @@
     }
 
     function calculate(index) {
-      localStorage.setItem('editingDropmapIndex', index);
-      loadCalculator();
+      activeDropmap = dropmaps[index];
+      draw();
     }
 
     function deleteDropmap(index) {
@@ -106,17 +134,6 @@
         localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
         renderDropmaps();
       }
-    }
-
-    function loadCalculator() {
-      calculateArea.innerHTML = '';
-      const iframe = document.createElement('iframe');
-      iframe.src = 'fortnite-dropmap/calculate-drop.html';
-      iframe.width = '900';
-      iframe.height = '900';
-      iframe.style.border = 'none';
-      calculateArea.appendChild(iframe);
-      window.scrollTo(0, document.body.scrollHeight);
     }
 
     renderDropmaps();
