@@ -26,6 +26,14 @@
       gap: 10px;
       margin: 20px;
     }
+    .side-controls {
+      position: absolute;
+      right: 20px;
+      top: 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
     button {
       padding: 12px 24px;
       border-radius: 30px;
@@ -36,6 +44,19 @@
       font-weight: bold;
       font-size: 16px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .icon-button {
+      font-size: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      text-align: center;
+      padding: 0;
+      line-height: 48px;
+    }
+    .disabled {
+      opacity: 0.3;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -51,6 +72,11 @@
   <div class="controls">
     <button onclick="saveDropmap()">💾 Speichern</button>
   </div>
+  <div class="side-controls">
+    <button class="icon-button" onclick="setTool('delete')">🗑️</button>
+    <button id="undoBtn" class="icon-button" onclick="undo()">↩️</button>
+    <button id="redoBtn" class="icon-button" onclick="redo()">↪️</button>
+  </div>
 
   <script>
     const canvas = document.getElementById('mapCanvas');
@@ -63,13 +89,12 @@
     const index = parseInt(localStorage.getItem('editingDropmapIndex'));
     const dropmap = dropmaps[index];
 
-    let scale = 1;
-    let originX = 0;
-    let originY = 0;
-    let draggingMap = false;
-    let offsetX = 0;
-    let offsetY = 0;
-    let draggingPoint = null;
+    let scale = 1, originX = 0, originY = 0;
+    let draggingMap = false, offsetX = 0, offsetY = 0, draggingPoint = null;
+    let tool = 'add';
+
+    const undoStack = [];
+    const redoStack = [];
 
     img.onload = () => draw();
 
@@ -90,8 +115,16 @@
       for (let i = 0; i < dropmap.points.length; i++) {
         const p = dropmap.points[i];
         if (Math.hypot(p.x - x, p.y - y) < 10) {
-          draggingPoint = i;
-          return;
+          if (tool === 'delete') {
+            undoStack.push({ action: 'delete', point: p });
+            dropmap.points.splice(i, 1);
+            draw();
+            updateUndoRedo();
+            return;
+          } else {
+            draggingPoint = i;
+            return;
+          }
         }
       }
       draggingMap = true;
@@ -100,14 +133,18 @@
     });
 
     canvas.addEventListener('mouseup', e => {
-      if (!draggingPoint && !draggingMap) {
+      if (!draggingPoint && !draggingMap && tool === 'add') {
         const x = (e.offsetX - originX) / scale;
         const y = (e.offsetY - originY) / scale;
-        dropmap.points.push({ x, y });
+        const newPoint = { x, y };
+        dropmap.points.push(newPoint);
+        undoStack.push({ action: 'add', point: newPoint });
+        redoStack.length = 0;
       }
       draggingMap = false;
       draggingPoint = null;
       draw();
+      updateUndoRedo();
     });
 
     canvas.addEventListener('mousemove', e => {
@@ -123,13 +160,40 @@
       }
     });
 
-    canvas.addEventListener('contextmenu', e => {
-      e.preventDefault();
-      const x = (e.offsetX - originX) / scale;
-      const y = (e.offsetY - originY) / scale;
-      dropmap.points = dropmap.points.filter(p => Math.hypot(p.x - x, p.y - y) > 10);
+    function setTool(t) {
+      tool = t;
+    }
+
+    function undo() {
+      const last = undoStack.pop();
+      if (!last) return;
+      if (last.action === 'add') {
+        dropmap.points = dropmap.points.filter(p => p !== last.point);
+      } else if (last.action === 'delete') {
+        dropmap.points.push(last.point);
+      }
+      redoStack.push(last);
       draw();
-    });
+      updateUndoRedo();
+    }
+
+    function redo() {
+      const last = redoStack.pop();
+      if (!last) return;
+      if (last.action === 'add') {
+        dropmap.points.push(last.point);
+      } else if (last.action === 'delete') {
+        dropmap.points = dropmap.points.filter(p => p !== last.point);
+      }
+      undoStack.push(last);
+      draw();
+      updateUndoRedo();
+    }
+
+    function updateUndoRedo() {
+      document.getElementById('undoBtn').classList.toggle('disabled', undoStack.length === 0);
+      document.getElementById('redoBtn').classList.toggle('disabled', redoStack.length === 0);
+    }
 
     function draw() {
       canvas.width = 900;
