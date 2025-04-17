@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Deine Dropmaps</title>
+  <title>Busroute ziehen und Drop berechnen</title>
   <style>
     body {
       margin: 0;
@@ -13,84 +13,94 @@
       flex-direction: column;
       align-items: center;
     }
+    canvas {
+      margin-top: 10px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      max-width: 95vw;
+      height: auto;
+      cursor: crosshair;
+    }
     .header {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 10px;
       position: absolute;
       top: 10px;
       left: 10px;
-    }
-    .dropmap-list {
-      margin-top: 80px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
-    }
-    .dropmap-card {
-      background: #222;
-      border-radius: 10px;
-      padding: 10px;
-      text-align: center;
-      width: 200px;
-    }
-    .dropmap-card img {
-      width: 100%;
-      border-radius: 8px;
-    }
-    button {
-      margin-top: 10px;
-      padding: 10px;
-      background: #007bff;
-      border: none;
-      border-radius: 5px;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #calculateCanvas {
-      margin-top: 40px;
-      border: 2px solid #333;
-      border-radius: 10px;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <img src="fortnite-dropmaps/assets/dropmap.png" alt="Dropmap" width="32" height="32">
-    <h1>Deine Dropmaps</h1>
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none; color: white;">
+      <img src="fortnite-dropmaps/assets/dropmap.png" alt="Dropmap" width="32" height="32">
+      <span style="font-weight: bold; font-size: 18px;">Home</span>
+    </a>
   </div>
-
-  <div class="dropmap-list" id="dropmapList"></div>
-  <button onclick="createNewDropmap()">➕ Neue Dropmap</button>
-
+  <h2>Busroute ziehen und Drop berechnen</h2>
   <canvas id="calculateCanvas" width="900" height="900"></canvas>
-
   <script>
-    const container = document.getElementById('dropmapList');
     const canvas = document.getElementById('calculateCanvas');
     const ctx = canvas.getContext('2d');
-    const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const img = new Image();
     img.src = 'fortnite-dropmaps/assets/map.png';
+    const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
+    const index = parseInt(localStorage.getItem('editingDropmapIndex'));
+    const dropmap = dropmaps[index];
 
-    let activeDropmap = null;
     let scale = 1, originX = 0, originY = 0;
-    let isDragging = false;
-    let dragStart = {};
+    let draggingStart = false, draggingEnd = false;
+    let startPoint = { x: 200, y: 200 };
+    let endPoint = { x: 700, y: 700 };
 
-    img.onload = () => {
+    img.onload = () => draw();
+
+    canvas.addEventListener('mousedown', e => {
+      const x = (e.offsetX - originX) / scale;
+      const y = (e.offsetY - originY) / scale;
+      if (Math.hypot(x - startPoint.x, y - startPoint.y) < 15) draggingStart = true;
+      else if (Math.hypot(x - endPoint.x, y - endPoint.y) < 15) draggingEnd = true;
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      draggingStart = false;
+      draggingEnd = false;
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      const x = (e.offsetX - originX) / scale;
+      const y = (e.offsetY - originY) / scale;
+      if (draggingStart) {
+        startPoint = { x, y };
+        draw();
+      } else if (draggingEnd) {
+        endPoint = { x, y };
+        draw();
+      }
+    });
+
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const mouseX = (e.offsetX - originX) / scale;
+      const mouseY = (e.offsetY - originY) / scale;
+      scale = Math.min(Math.max(0.5, scale + delta), 3);
+      originX = e.offsetX - mouseX * scale;
+      originY = e.offsetY - mouseY * scale;
       draw();
-    };
+    });
 
     function draw() {
-      if (!activeDropmap) return;
+      canvas.width = 900;
+      canvas.height = 900;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.setTransform(scale, 0, 0, scale, originX, originY);
       ctx.drawImage(img, 0, 0, 900, 900);
-      activeDropmap.points.forEach(p => {
+
+      // Dropmap Punkte
+      dropmap.points.forEach(p => {
         ctx.fillStyle = 'yellow';
         ctx.beginPath();
         ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
@@ -99,35 +109,31 @@
         ctx.lineWidth = 2;
         ctx.stroke();
       });
-    }
 
-    function renderDropmaps() {
-      container.innerHTML = '';
-      dropmaps.forEach((map, index) => {
-        const card = document.createElement('div');
-        card.className = 'dropmap-card';
-        card.innerHTML = `
-          <img src="fortnite-dropmaps/assets/map.png" alt="Vorschau">
-          <p>${map.name || 'Unbenannt'}</p>
-          <button onclick="calculate(${index})">Calculate Drop</button>
-        `;
-        container.appendChild(card);
-      });
-    }
+      // Busroute
+      ctx.strokeStyle = 'white';
+      ctx.setLineDash([10, 10]);
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(startPoint.x, startPoint.y);
+      ctx.lineTo(endPoint.x, endPoint.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-    function createNewDropmap() {
-      dropmaps.push({ name: 'Neue Dropmap', points: [] });
-      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      localStorage.setItem('editingDropmapIndex', dropmaps.length - 1);
-      window.location.href = 'editor.html';
-    }
+      // Start/End Marker
+      ctx.fillStyle = 'black';
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(startPoint.x, startPoint.y, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
 
-    function calculate(index) {
-      activeDropmap = dropmaps[index];
-      draw();
+      ctx.beginPath();
+      ctx.arc(endPoint.x, endPoint.y, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
     }
-
-    renderDropmaps();
   </script>
 </body>
 </html>
