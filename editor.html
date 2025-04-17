@@ -142,6 +142,7 @@
     <canvas id="mapCanvas" width="900" height="900"></canvas>
     <div class="context-menu" id="contextMenu">
       <button onclick="startEdit()">✏️ Bearbeiten</button>
+      <button onclick="deleteMarker()">🗑️ Löschen</button>
     </div>
     <div class="side-controls">
       <button id="markerIcon" class="icon-button" draggable="true">📍</button>
@@ -171,7 +172,6 @@
     let dropmap = dropmaps[editingIndex] || { points: [] };
     dropmap.points = dropmap.points || [];
 
-    // Map image + zoom & drag
     const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png';
     let scale = 1, originX = 0, originY = 0, dragStart = null, dragging = false;
     img.onload = draw;
@@ -180,7 +180,7 @@
       if (dragStart) {
         const dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
         if (!dragging && Math.hypot(dx, dy) > 5) dragging = true;
-        if (dragging) { originX += dx; originY += dy; dragStart = { x: e.clientX, y: e.clientY }; draw(); }
+        if (dragging) { originX += dx; originY += dy; dragStart = { x: e.clientX, y: e.clientY }; draw(); updateMarkers(); }
       }
     });
     canvas.addEventListener('mouseup', () => { dragStart = null; canvas.style.cursor = 'grab'; });
@@ -189,7 +189,7 @@
       const mx = (e.offsetX - originX) / scale, my = (e.offsetY - originY) / scale;
       scale = Math.min(Math.max(0.5, scale + delta), 3);
       originX = e.offsetX - mx * scale; originY = e.offsetY - my * scale;
-      draw();
+      draw(); updateMarkers();
     });
 
     function draw() {
@@ -199,31 +199,24 @@
       ctx.drawImage(img, 0, 0, 900, 900);
     }
 
-    // Marker drag & drop
-    let editingMarker = null;
-    markerIcon.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', 'marker'));
-    mapContainer.addEventListener('dragover', e => e.preventDefault());
-    mapContainer.addEventListener('drop', e => {
-      e.preventDefault();
-      if (e.dataTransfer.getData('text/plain') === 'marker') {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left, y = e.clientY - rect.top;
-        addMarker(x, y);
-      }
-      if (e.dataTransfer.types.includes('text/marker')) {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left, y = e.clientY - rect.top;
-        editingMarker.style.left = x + 'px'; editingMarker.style.top = y + 'px';
-        editingMarker.removeAttribute('draggable');
-      }
-    });
+    function updateMarkers() {
+      document.querySelectorAll('.marker').forEach((el, idx) => {
+        const p = dropmap.points[idx];
+        el.style.left = (originX + p.x * scale) + 'px';
+        el.style.top = (originY + p.y * scale) + 'px';
+      });
+    }
 
     function addMarker(x, y) {
+      const mx = (x - originX) / scale, my = (y - originY) / scale;
+      dropmap.points.push({ x: mx, y: my });
+      const idx = dropmap.points.length - 1;
       const el = document.createElement('div');
       el.className = 'marker';
-      el.style.left = x + 'px'; el.style.top = y + 'px';
+      el.dataset.idx = idx;
       el.addEventListener('click', e => { e.stopPropagation(); showContextMenu(e.clientX, e.clientY, el); });
       mapContainer.appendChild(el);
+      updateMarkers();
     }
 
     function showContextMenu(cx, cy, marker) {
@@ -236,41 +229,33 @@
     function startEdit() {
       contextMenu.style.display = 'none';
       editingMarker.setAttribute('draggable', 'true');
+      editingMarker.addEventListener('dragstart', e => e.dataTransfer.setData('text/marker', ''));
+    }
+    function deleteMarker() {
+      const i = parseInt(editingMarker.dataset.idx);
+      dropmap.points.splice(i, 1);
+      mapContainer.removeChild(editingMarker);
+      // reindex remaining markers
+      document.querySelectorAll('.marker').forEach((el, idx) => el.dataset.idx = idx);
+      contextMenu.style.display = 'none';
     }
 
     function undo() {}
     function redo() {}
 
-    // Popup functions
     function showPopup() {
       document.body.classList.add('no-scroll');
       canvas.style.pointerEvents = 'none';
-      overlay.style.display = 'block';
-      popup.style.display = 'flex';
-      popup.style.opacity = '0';
+      overlay.style.display = 'block'; popup.style.display = 'flex'; popup.style.opacity = '0';
       setTimeout(() => popup.style.opacity = '1', 10);
     }
-
-    function hidePopup(e) {
-      if (e.target === overlay) closePopup();
-    }
-
+    function hidePopup(e) { if (e.target === overlay) closePopup(); }
     function closePopup() {
-      popup.style.opacity = '0';
-      overlay.style.opacity = '0';
-      setTimeout(() => {
-        popup.style.display = 'none';
-        overlay.style.display = 'none';
-        document.body.classList.remove('no-scroll');
-        canvas.style.pointerEvents = 'auto';
-        overlay.style.opacity = '';
-        popup.style.opacity = '';
-      }, 300);
+      popup.style.opacity = '0'; overlay.style.opacity = '0';
+      setTimeout(()=>{ popup.style.display='none'; overlay.style.display='none'; document.body.classList.remove('no-scroll'); canvas.style.pointerEvents='auto'; },300);
     }
-
     function saveDropmapName() {
-      const inp = document.getElementById('dropmapName');
-      const val = inp.value.trim();
+      const inp = document.getElementById('dropmapName'), val = inp.value.trim();
       const hasOld = !!dropmap.name;
       if (val) dropmap.name = val;
       else if (!hasOld) dropmap.name = 'Neue Dropmap';
