@@ -87,17 +87,21 @@
     let editingEl=null;
     function showContextMenu(cx, cy, el) {
       editingEl = el;
-      // Position context menu above marker
       const markerRect = el.getBoundingClientRect();
+      // show menu hidden to measure
       contextMenu.style.display = 'block';
-      // Allow menu to render to get dimensions
+      contextMenu.style.visibility = 'hidden';
+      // measure size
       const menuRect = contextMenu.getBoundingClientRect();
       const left = markerRect.left + markerRect.width/2 - menuRect.width/2;
       const top = markerRect.top - menuRect.height - 8;
       contextMenu.style.left = `${left}px`;
       contextMenu.style.top = `${top}px`;
+      // reveal
+      contextMenu.style.visibility = 'visible';
     }
     // Hide on click outside
+    document.body.addEventListener('click', () => contextMenu.style.display = 'none');
     document.body.addEventListener('click', () => contextMenu.style.display = 'none');('click',()=>contextMenu.style.display='none');
 
     function enableEdit(){ contextMenu.style.display='none'; editingEl.setAttribute('draggable','true'); }
