@@ -25,12 +25,12 @@
 </head>
 <body>
   <!-- Home link -->
-  <div style="position:absolute;top:10px;left:10px;z-index:1000;display:flex;align-items:center;gap:8px;">
-    <a href="index.html" style="display:flex;align-items:center;text-decoration:none;color:white;">
-      <img src="fortnite-dropmap/assets/dropmap.png" alt="Home" width="32" height="32" style="border-radius:4px;" />
-      <span style="font-size:18px;font-weight:bold;">Home</span>
-    </a>
-  </div>
+  <div style="position:absolute;top:10px;left:10px;z-index:1000;display:flex;align-items:center;gap:12px;">
+  <a href="index.html" style="display:flex;align-items:center;text-decoration:none;color:white;">
+    <img src="fortnite-dropmap/assets/dropmap.png" alt="Home" width="48" height="48" style="border-radius:6px;" />
+    <span style="font-size:24px;font-weight:bold;">Home</span>
+  </a>
+</div>
   <h2>Dropmap bearbeiten</h2>
   <div class="controls">
     <button onclick="showPopup()">💾 Dropmap speichern</button>
@@ -77,7 +77,14 @@
     function updateMarkers(){ document.querySelectorAll('.marker').forEach((el,i)=>{const p=dropmap.points[i];el.style.left=(ox+p.x*scale)+'px';el.style.top=(oy+p.y*scale)+'px';}); }
 
     // Drag & drop handlers
-    markerIcon.addEventListener('dragstart',e=> e.dataTransfer.setData('text/plain','newMarker'));
+    markerIcon.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain','newMarker'));
+    // Ensure editing markers also carry their index when dragging
+    mapContainer.addEventListener('dragstart', e => {
+      if (e.target.classList.contains('marker') && e.target.getAttribute('draggable') === 'true') {
+        const idx = e.target.dataset.idx;
+        e.dataTransfer.setData('text/plain', 'edit:' + idx);
+      }
+    });
     mapContainer.addEventListener('dragover',e=> e.preventDefault());
     mapContainer.addEventListener('drop',e=>{
       e.preventDefault(); const data=e.dataTransfer.getData('text/plain');
@@ -110,11 +117,21 @@
       contextMenu.style.visibility = 'visible';
     }
     // Hide on click outside
-    document.body.addEventListener('click', () => contextMenu.style.display = 'none');
+    // Hide on click outside
+    document.body.addEventListener('click', e => {
+      if (contextMenu.style.display === 'block' && e.target !== contextMenu && !contextMenu.contains(e.target)) {
+        contextMenu.style.display = 'none';
+      }
+    });
     document.body.addEventListener('click', () => contextMenu.style.display = 'none');
     document.body.addEventListener('click', () => contextMenu.style.display = 'none');('click',()=>contextMenu.style.display='none');
 
-    function enableEdit(){ contextMenu.style.display='none'; editingEl.setAttribute('draggable','true'); }
+    function enableEdit(){
+      // enable drag of this marker
+      contextMenu.style.display = 'none';
+      editingEl.setAttribute('draggable','true');
+      editingEl.style.cursor = 'grab';
+    }
     function deleteMarker(){ const i=+editingEl.dataset.idx; dropmap.points.splice(i,1); mapContainer.removeChild(editingEl); document.querySelectorAll('.marker').forEach((m,idx)=>m.dataset.idx=idx); updateMarkers(); contextMenu.style.display='none'; }
 
     function undo(){}
