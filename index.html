@@ -4,52 +4,18 @@
   <meta charset="UTF-8">
   <title>Deine Dropmaps</title>
   <style>
-    body {
-      margin: 0;
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      position: absolute;
-      top: 10px;
-      left: 10px;
-    }
-    .dropmap-list {
-      margin-top: 80px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
-      width: 100%;
-    }
-    .dropmap-card {
-      background: #222;
-      border-radius: 10px;
-      padding: 10px;
-      text-align: center;
-      width: 200px;
-    }
-    .dropmap-card img {
-      width: 100%;
-      border-radius: 8px;
-    }
-    button {
-      margin-top: 10px;
-      padding: 10px;
-      background: #007bff;
-      border: none;
-      border-radius: 5px;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+    body.no-scroll { overflow: hidden; }
+    .header { display: flex; align-items: center; gap: 20px; position: absolute; top: 10px; left: 10px; }
+    .dropmap-list { margin-top: 80px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
+    .dropmap-card { background: #222; border-radius: 10px; padding: 10px; text-align: center; width: 200px; }
+    .dropmap-card img { width: 100%; border-radius: 8px; }
+    button { margin-top: 10px; padding: 10px; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; }
+    .delete-button { background: #dc3545; }
+    .overlay { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.7); display:none; z-index:999; }
+    .popup { position: fixed; top:50%; left:50%; transform:translate(-50%, -50%); background: #222; padding:20px; border-radius:20px; box-shadow:0 0 20px 5px yellow; display:none; flex-direction:column; align-items:center; z-index:1000; transition:opacity 0.3s ease; }
+    .popup p { margin: 0 0 10px; }
+    .close-btn { position:absolute; top:8px; right:10px; background:transparent; color:white; border:none; font-size:18px; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
   </style>
 </head>
 <body>
@@ -57,13 +23,21 @@
     <img src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap" width="32" height="32">
     <h1>Deine Dropmaps</h1>
   </div>
-
   <div class="dropmap-list" id="dropmapList"></div>
   <button onclick="createNewDropmap()">➕ Neue Dropmap</button>
+
+  <!-- Delete confirmation popup -->
+  <div class="overlay" id="deleteOverlay" onclick="closeDeletePopup(event)"></div>
+  <div class="popup" id="deletePopup">
+    <button class="close-btn" onclick="closeDeletePopup()">✖</button>
+    <p>Diese Dropmap wirklich löschen?</p>
+    <button class="delete-button" onclick="confirmDelete()">🗑️ Löschen</button>
+  </div>
 
   <script>
     const container = document.getElementById('dropmapList');
     let dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
+    let deleteIndex = null;
 
     function renderDropmaps() {
       container.innerHTML = '';
@@ -73,9 +47,9 @@
         card.innerHTML = `
           <img src="fortnite-dropmap/assets/map.png" alt="Vorschau">
           <p>${map.name || 'Unbenannt'}</p>
-          <button onclick="editDropmap(${index})">Bearbeiten</button>
-          <button onclick="calculateDrop(${index})">Calculate Drop</button>
-          <button onclick="removeDropmap(${index})" style="background:#dc3545">🗑️ Löschen</button>
+          <button onclick="editDropmap(${index})">🖊️ Bearbeiten</button>
+          <button onclick="calculateDrop(${index})">🎯 Calculate Drop</button>
+          <button class="delete-button" onclick="showDeletePopup(${index})">🗑️ Löschen</button>
         `;
         container.appendChild(card);
       });
@@ -98,12 +72,34 @@
       window.location.href = 'calculate.html';
     }
 
-    function removeDropmap(index) {
-      if (confirm('Möchtest du diese Dropmap wirklich löschen?')) {
-        dropmaps.splice(index, 1);
-        localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-        renderDropmaps();
-      }
+    function showDeletePopup(index) {
+      deleteIndex = index;
+      document.body.classList.add('no-scroll');
+      document.getElementById('deleteOverlay').style.display = 'block';
+      const popup = document.getElementById('deletePopup');
+      popup.style.display = 'flex'; popup.style.opacity = '0';
+      setTimeout(() => popup.style.opacity = '1', 10);
+    }
+
+    function closeDeletePopup(e) {
+      if (e && e.target.id !== 'deleteOverlay') return;
+      const overlay = document.getElementById('deleteOverlay');
+      const popup = document.getElementById('deletePopup');
+      popup.style.opacity = '0'; overlay.style.opacity = '0';
+      setTimeout(() => {
+        popup.style.display = 'none';
+        overlay.style.display = 'none';
+        document.body.classList.remove('no-scroll');
+        popup.style.opacity = '';
+        overlay.style.opacity = '';
+      }, 300);
+    }
+
+    function confirmDelete() {
+      dropmaps.splice(deleteIndex, 1);
+      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
+      closeDeletePopup();
+      renderDropmaps();
     }
 
     // initial render
