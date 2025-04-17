@@ -68,70 +68,41 @@
     let scale=1, ox=0, oy=0, dragStart=null, dragging=false;
     img.onload=draw;
     canvas.addEventListener('mousedown',e=>{ dragStart={x:e.clientX,y:e.clientY}; dragging=false; });
-    canvas.addEventListener('mousemove',e=>{ if(dragStart){ const dx=e.clientX-dragStart.x, dy=e.clientY-dragStart.y; if(!dragging&&Math.hypot(dx,dy)>5) dragging=true; if(dragging){ox+=dx;oy+=dy;dragStart={x:e.clientX,y:e.clientY};draw();updateMarkers();}} });
+    canvas.addEventListener('mousemove',e=>{ if(dragStart){ const dx=e.clientX-dragStart.x, dy=e.clientY-dragStart.y; if(!dragging&&Math.hypot(dx,dy)>5) dragging=true; if(dragging){ox+=dx; oy+=dy; dragStart={x:e.clientX,y:e.clientY}; draw(); updateMarkers(); updateContextMenu(); } } });
     canvas.addEventListener('mouseup',()=>dragStart=null);
-    canvas.addEventListener('wheel',e=>{e.preventDefault();const d=e.deltaY>0?-0.1:0.1;const mx=(e.offsetX-ox)/scale,my=(e.offsetY-oy)/scale;scale=Math.min(Math.max(0.5,scale+d),3);ox=e.offsetX-mx*scale;oy=e.offsetY-my*scale;draw();updateMarkers();});
+    canvas.addEventListener('wheel',e=>{e.preventDefault(); const d=e.deltaY>0?-0.1:0.1; const mx=(e.offsetX-ox)/scale,my=(e.offsetY-oy)/scale; scale=Math.min(Math.max(0.5,scale+d),3); ox=e.offsetX-mx*scale; oy=e.offsetY-my*scale; draw(); updateMarkers(); updateContextMenu(); });
 
-    function draw(){ canvas.width=900;canvas.height=900;ctx.setTransform(scale,0,0,scale,ox,oy);ctx.clearRect(0,0,900,900);ctx.drawImage(img,0,0,900,900); }
+    function draw(){ canvas.width=900; canvas.height=900; ctx.setTransform(scale,0,0,scale,ox,oy); ctx.clearRect(0,0,900,900); ctx.drawImage(img,0,0,900,900); }
 
-    function updateMarkers(){ document.querySelectorAll('.marker').forEach((el,i)=>{const p=dropmap.points[i];el.style.left=(ox+p.x*scale)+'px';el.style.top=(oy+p.y*scale)+'px';}); }
+    function updateMarkers(){ document.querySelectorAll('.marker').forEach((el,i)=>{ const p=dropmap.points[i]; el.style.left=(ox+p.x*scale)+'px'; el.style.top=(oy+p.y*scale)+'px'; }); }
+
+    function updateContextMenu() {
+      if (contextMenu.style.display === 'block' && editingEl) {
+        const containerRect = mapContainer.getBoundingClientRect();
+        const markerRect = editingEl.getBoundingClientRect();
+        const menuRect = contextMenu.getBoundingClientRect();
+        const left = markerRect.left + markerRect.width/2 - menuRect.width/2 - containerRect.left;
+        const top = markerRect.top - menuRect.height - 8 - containerRect.top;
+        contextMenu.style.left = `${left}px`;
+        contextMenu.style.top = `${top}px`;
+      }
+    }
 
     // Drag & drop handlers
-    markerIcon.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain','newMarker'));
-    // Ensure editing markers also carry their index when dragging
-    mapContainer.addEventListener('dragstart', e => {
-      if (e.target.classList.contains('marker') && e.target.getAttribute('draggable') === 'true') {
-        const idx = e.target.dataset.idx;
-        e.dataTransfer.setData('text/plain', 'edit:' + idx);
-      }
-    });
-    mapContainer.addEventListener('dragover',e=> e.preventDefault());
-    mapContainer.addEventListener('drop',e=>{
-      e.preventDefault(); const data=e.dataTransfer.getData('text/plain');
-      const rect=canvas.getBoundingClientRect(), x=e.clientX-rect.left, y=e.clientY-rect.top;
-      if(data==='newMarker'){ addMarker(x,y); }
-      else if(data.startsWith('edit:')){ const idx=+data.split(':')[1]; const mx=(x-ox)/scale,my=(y-oy)/scale; dropmap.points[idx]={x:mx,y:my}; updateMarkers(); }
-    });
+    markerIcon.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain','newMarker'));
+    mapContainer.addEventListener('dragstart',e=>{ if(e.target.classList.contains('marker') && e.target.draggable){ const idx=e.target.dataset.idx; e.dataTransfer.setData('text/plain','edit:'+idx);} });
+    mapContainer.addEventListener('dragover',e=>e.preventDefault());
+    mapContainer.addEventListener('drop',e=>{ e.preventDefault(); const data=e.dataTransfer.getData('text/plain'); const rect=canvas.getBoundingClientRect(), x=e.clientX-rect.left, y=e.clientY-rect.top; if(data==='newMarker'){ addMarker(x,y);} else if(data.startsWith('edit:')){ const idx=+data.split(':')[1]; const mx=(x-ox)/scale,my=(y-oy)/scale; dropmap.points[idx]={x:mx,y:my}; updateMarkers(); updateContextMenu(); } });
 
     function addMarker(x,y){ const mx=(x-ox)/scale,my=(y-oy)/scale; dropmap.points.push({x:mx,y:my}); renderMarker(dropmap.points.length-1); }
-    function renderMarker(idx){ const el=document.createElement('div'); el.className='marker'; el.dataset.idx=idx; el.setAttribute('draggable','false'); el.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain','edit:'+idx)); el.addEventListener('click',e=>{e.stopPropagation(); showContextMenu(e.clientX,e.clientY,el);}); mapContainer.appendChild(el); updateMarkers(); }
-    // initial existing
+    function renderMarker(idx){ const el=document.createElement('div'); el.className='marker'; el.dataset.idx=idx; el.draggable=false; el.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain','edit:'+idx)); el.addEventListener('click',e=>{ e.stopPropagation(); showContextMenu(e.clientX,e.clientY,el); }); mapContainer.appendChild(el); updateMarkers(); }
     dropmap.points.forEach((_,i)=>renderMarker(i));
 
     let editingEl=null;
-    function showContextMenu(cx, cy, el) {
-      editingEl = el;
-      // calculate relative to mapContainer
-      const markerRect = el.getBoundingClientRect();
-      const containerRect = mapContainer.getBoundingClientRect();
-      // temporarily show to measure
-      contextMenu.style.display = 'block';
-      contextMenu.style.visibility = 'hidden';
-      const menuRect = contextMenu.getBoundingClientRect();
-      // compute relative coords
-      const left = markerRect.left + markerRect.width/2 - menuRect.width/2 - containerRect.left;
-      const top = markerRect.top - menuRect.height - 8 - containerRect.top;
-      contextMenu.style.left = `${left}px`;
-      contextMenu.style.top = `${top}px`;
-      // reveal
-      contextMenu.style.visibility = 'visible';
-    }
-    // Hide on click outside
-    // Hide on click outside
-    document.body.addEventListener('click', e => {
-      if (contextMenu.style.display === 'block' && e.target !== contextMenu && !contextMenu.contains(e.target)) {
-        contextMenu.style.display = 'none';
-      }
-    });
-    document.body.addEventListener('click', () => contextMenu.style.display = 'none');
-    document.body.addEventListener('click', () => contextMenu.style.display = 'none');('click',()=>contextMenu.style.display='none');
+    function showContextMenu(cx,cy,el){ editingEl=el; updateContextMenu(); contextMenu.style.display='block'; }
+    document.body.addEventListener('click',e=>{ if(contextMenu.style.display==='block' && !contextMenu.contains(e.target)){ contextMenu.style.display='none'; }});
 
-    function enableEdit(){
-      // enable drag of this marker
-      contextMenu.style.display = 'none';
-      editingEl.setAttribute('draggable','true');
-      editingEl.style.cursor = 'grab';
-    }
+    function enableEdit(){ contextMenu.style.display='none'; editingEl.draggable=true; updateContextMenu(); }
     function deleteMarker(){ const i=+editingEl.dataset.idx; dropmap.points.splice(i,1); mapContainer.removeChild(editingEl); document.querySelectorAll('.marker').forEach((m,idx)=>m.dataset.idx=idx); updateMarkers(); contextMenu.style.display='none'; }
 
     function undo(){}
