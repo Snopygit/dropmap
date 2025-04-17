@@ -19,7 +19,7 @@
       border-radius: 10px;
       max-width: 95vw;
       height: auto;
-      cursor: crosshair;
+      cursor: grab;
     }
     .controls {
       display: flex;
@@ -148,12 +148,47 @@
     let undoStack = [];
     let redoStack = [];
 
+    let scale = 1;
+    let originX = 0;
+    let originY = 0;
+    let dragging = false;
+    let dragStart = null;
+
     img.onload = () => draw();
 
+    canvas.addEventListener('mousedown', e => {
+      dragging = true;
+      dragStart = { x: e.clientX, y: e.clientY };
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (dragging) {
+        originX += e.clientX - dragStart.x;
+        originY += e.clientY - dragStart.y;
+        dragStart = { x: e.clientX, y: e.clientY };
+        draw();
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      dragging = false;
+    });
+
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const mouseX = (e.offsetX - originX) / scale;
+      const mouseY = (e.offsetY - originY) / scale;
+      scale += delta;
+      scale = Math.min(Math.max(0.5, scale), 3);
+      originX = e.offsetX - mouseX * scale;
+      originY = e.offsetY - mouseY * scale;
+      draw();
+    });
+
     canvas.addEventListener('click', e => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = (e.offsetX - originX) / scale;
+      const y = (e.offsetY - originY) / scale;
 
       if (tool === 'add') {
         const point = { x, y };
@@ -177,6 +212,7 @@
       canvas.height = 900;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(scale, 0, 0, scale, originX, originY);
       ctx.drawImage(img, 0, 0, 900, 900);
       dropmap.points.forEach(p => {
         ctx.fillStyle = 'yellow';
