@@ -157,13 +157,6 @@
     originX = e.clientX - offsetX;
     originY = e.clientY - offsetY;
     draw();
-  } else if (draggingPoint !== null) {
-    const x = (e.offsetX - originX) / scale;
-    const y = (e.offsetY - originY) / scale;
-    dropmap.points[draggingPoint] = { x, y };
-    draw();
-  }
-});
       } else if (draggingPoint !== null) {
         const x = (e.offsetX - originX) / scale;
         const y = (e.offsetY - originY) / scale;
