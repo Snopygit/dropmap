@@ -151,8 +151,9 @@
     let scale = 1;
     let originX = 0;
     let originY = 0;
-    let dragging = false;
     let dragStart = null;
+    let isDragging = false;
+    let didDrag = false;
 
     img.onload = () => draw();
 
