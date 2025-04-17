@@ -24,7 +24,13 @@
     .controls {
       display: flex;
       gap: 10px;
-      margin: 20px;
+      margin: 10px;
+      position: fixed;
+      top: 70px;
+      background-color: #111;
+      padding: 10px;
+      border-radius: 10px;
+      z-index: 100;
     }
     button {
       padding: 12px 24px;
@@ -55,11 +61,11 @@
     </a>
   </div>
   <h2>Busroute ziehen und Drop berechnen</h2>
-  <canvas id="mapCanvas" width="900" height="900"></canvas>
   <div class="controls">
     <button onclick="calculateDrops()">FIND BEST DROP</button>
     <button onclick="resetRoute()">🔄 Reset</button>
   </div>
+  <canvas id="mapCanvas" width="900" height="900"></canvas>
 
   <script>
     const canvas = document.getElementById('mapCanvas');
@@ -78,8 +84,8 @@
     }
 
     const route = [
-      { x: 200, y: 200 },
-      { x: 700, y: 700 }
+      { x: 150, y: 150 },
+      { x: 750, y: 750 }
     ];
 
     let scale = 1;
@@ -207,8 +213,8 @@
     }
 
     function resetRoute() {
-      route[0] = { x: 200, y: 200 };
-      route[1] = { x: 700, y: 700 };
+      route[0] = { x: 150, y: 150 };
+      route[1] = { x: 750, y: 750 };
       bestDropLine = null;
       draw();
     }
