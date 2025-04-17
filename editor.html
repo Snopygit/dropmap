@@ -157,8 +157,31 @@
     img.onload = () => draw();
 
     canvas.addEventListener('mousedown', e => {
-      dragging = true;
       dragStart = { x: e.clientX, y: e.clientY };
+      dragging = false;
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (dragStart) {
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+        if (!dragging && Math.hypot(dx, dy) > 5) {
+          dragging = true;
+          canvas.style.cursor = 'grabbing';
+        }
+      }
+      if (dragging) {
+        originX += e.clientX - dragStart.x;
+        originY += e.clientY - dragStart.y;
+        dragStart = { x: e.clientX, y: e.clientY };
+        draw();
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      dragStart = null;
+      dragging = false;
+      canvas.style.cursor = 'grab';
     });
 
     canvas.addEventListener('mousemove', e => {
