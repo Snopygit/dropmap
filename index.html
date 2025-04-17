@@ -2,127 +2,243 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Fortnite Dropmap</title>
+  <title>Busroute ziehen und Drop berechnen</title>
   <style>
     body {
       margin: 0;
+      background: #111;
+      color: white;
       font-family: sans-serif;
-      background: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas {
+      margin-top: 10px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      max-width: 95vw;
+      height: auto;
+      cursor: grab;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 20px;
+    }
+    button {
+      padding: 12px 24px;
+      border-radius: 30px;
+      background: #007bff;
       color: white;
-    }
-    #tab-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-    }
-    .dropmap-entry {
-      background: #2a2a2a;
-      padding: 10px;
-      margin: 10px;
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .dropmap-entry img {
-      width: 200px;
-      height: 200px;
-      object-fit: cover;
-      border-radius: 6px;
-      border: 1px solid #444;
-    }
-    .dropmap-entry button {
-      margin-top: 8px;
-      padding: 5px 10px;
-      background: #444;
       border: none;
-      border-radius: 6px;
-      color: white;
       cursor: pointer;
-    }
-    #new-map-btn {
-      margin-bottom: 20px;
-      padding: 10px 20px;
+      font-weight: bold;
       font-size: 16px;
-      background: #333;
-      border-radius: 8px;
-      color: white;
-      border: none;
-      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
   </style>
 </head>
 <body>
-  <div id="tab-container">
-    <button id="new-map-btn" onclick="createNewDropmap()">➕ Neue Dropmap</button>
-    <div id="dropmap-list"></div>
+  <div style="position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 20px;">
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none; color: white;">
+      <img src="assets/dropmap.png" alt="Home" width="32" height="32" style="border-radius: 4px;">
+      <span style="font-weight: bold; font-size: 18px;">Home</span>
+    </a>
+  </div>
+  <div style="position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 20px;">
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none; color: white;">
+      <img src="assets/dropmap.png" alt="Home" width="32" height="32" style="border-radius: 4px;">
+      <span style="font-weight: bold; font-size: 18px;">Home</span>
+    </a>
+  </div>
+  <div style="position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 20px;">
+  <a href="index.html" style="display: flex; align-items: center; text-decoration: none; color: white;">
+    <img src="/mnt/data/dropmap.png" alt="Home" width="32" height="32" style="border-radius: 4px;">
+    <span style="font-weight: bold; font-size: 18px;">Home</span>
+  </a>
+  <a href="editor.html" style="display: flex; align-items: center; text-decoration: none; color: white;">
+    <img src="/mnt/data/dropmap.png" alt="Editor" width="32" height="32" style="border-radius: 4px;">
+    <span style="font-weight: bold; font-size: 18px;">Editor</span>
+  </a>
+</div>
+  <h2>Busroute ziehen und Drop berechnen</h2>
+  <canvas id="mapCanvas" width="900" height="900"></canvas>
+  <div class="controls">
+    <button onclick="calculateDrops()">FIND BEST DROP</button>
+    <button onclick="resetRoute()">🔄 Reset</button>
   </div>
 
   <script>
-    let dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = 'fortnite-dropmap/assets/map.png';
+    img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sicher, dass der Pfad korrekt ist.");
 
-    function renderDropmapList() {
-      const list = document.getElementById('dropmap-list');
-      list.innerHTML = '';
-      dropmaps.forEach((map, i) => {
-        const div = document.createElement('div');
-        div.className = 'dropmap-entry';
+    const dropmap = JSON.parse(localStorage.getItem('activeDropmap'));
+    let scale = 1;
+    let originX = 0;
+    let originY = 0;
+    let dragging = null;
+    let offsetX, offsetY;
 
-        const img = document.createElement('img');
-        img.src = map.preview || 'fortnite-dropmap/assets/map.png';
-        div.appendChild(img);
+    const route = [
+      { x: 200, y: 200 },
+      { x: 700, y: 700 }
+    ];
 
-        const label = document.createElement('div');
-        label.textContent = map.name;
-        div.appendChild(label);
+    img.onload = () => draw();
 
-        const editBtn = document.createElement('button');
-        editBtn.textContent = '✏️ Bearbeiten';
-        editBtn.onclick = () => {
-          localStorage.setItem('editingDropmapIndex', i);
-          window.location.href = 'editor.html';
-        };
-        div.appendChild(editBtn);
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const mouseX = (e.offsetX - originX) / scale;
+      const mouseY = (e.offsetY - originY) / scale;
+      scale = Math.min(Math.max(0.5, scale + delta), 3);
+      originX = e.offsetX - mouseX * scale;
+      originY = e.offsetY - mouseY * scale;
+      draw();
+    });
 
-        const calcBtn = document.createElement('button');
-        calcBtn.textContent = '🎯 Calculate Drop';
-        calcBtn.onclick = () => {
-          localStorage.setItem('activeDropmap', JSON.stringify(map));
-          window.location.href = 'calculate.html';
-        };
-        div.appendChild(calcBtn);
+    canvas.addEventListener('mousedown', e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left - originX) / scale;
+      const y = (e.clientY - rect.top - originY) / scale;
+      dragging = 'map';
+      offsetX = e.clientX - originX;
+      offsetY = e.clientY - originY;
+      route.forEach((point, i) => {
+        if (Math.hypot(point.x - x, point.y - y) < 12) {
+          dragging = i;
+          offsetX = point.x - x;
+          offsetY = point.y - y;
+        }
+      });
+    });
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = '🗑️ Löschen';
-        deleteBtn.onclick = () => {
-          if (confirm('Diese Dropmap wirklich löschen?')) {
-            dropmaps.splice(i, 1);
-            localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-            renderDropmapList();
-          }
-        };
-        div.appendChild(deleteBtn);
+    canvas.addEventListener('mouseup', () => dragging = null);
+    canvas.addEventListener('mouseleave', () => dragging = null);
 
-        list.appendChild(div);
+    canvas.addEventListener('mousemove', e => {
+      if (dragging === 'map') {
+        originX = e.clientX - offsetX;
+        originY = e.clientY - offsetY;
+        draw();
+      } else if (dragging !== null) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - originX) / scale;
+        const y = (e.clientY - rect.top - originY) / scale;
+        route[dragging].x = x + offsetX;
+        route[dragging].y = y + offsetY;
+        draw();
+      }
+    });
+
+    function drawArrowLine(start, end) {
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const len = Math.hypot(dx, dy);
+      const steps = Math.floor(len / 30);
+      const angle = Math.atan2(dy, dx);
+
+      for (let i = 0; i < steps; i++) {
+        const x = start.x + dx * (i / steps);
+        const y = start.y + dy * (i / steps);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(-5, -5);
+        ctx.lineTo(5, 0);
+        ctx.lineTo(-5, 5);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function draw() {
+      canvas.width = 900;
+      canvas.height = 900;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(scale, 0, 0, scale, originX, originY);
+      ctx.drawImage(img, 0, 0, 900, 900);
+
+      drawArrowLine(route[0], route[1]);
+
+      route.forEach(p => {
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      dropmap.points.forEach(p => {
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.stroke();
       });
     }
 
-    function createNewDropmap() {
-      const name = prompt("Name der Dropmap:");
-      if (!name) return;
-      const newMap = {
-        name,
-        points: [],
-        preview: 'fortnite-dropmap/assets/map.png'
-      };
-      dropmaps.push(newMap);
-      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      localStorage.setItem('editingDropmapIndex', dropmaps.length - 1);
-      window.location.href = 'editor.html';
+    function resetRoute() {
+      route[0] = { x: 200, y: 200 };
+      route[1] = { x: 700, y: 700 };
+      draw();
     }
 
-    renderDropmapList();
+    function calculateDrops() {
+      const dx = route[1].x - route[0].x;
+      const dy = route[1].y - route[0].y;
+      const len = Math.hypot(dx, dy);
+      const unitX = dx / len;
+      const unitY = dy / len;
+
+      let best = null;
+      let bestDist = Infinity;
+      let bestDrop = null;
+
+      dropmap.points.forEach(p => {
+        const px = p.x - route[0].x;
+        const py = p.y - route[0].y;
+        const proj = px * unitX + py * unitY;
+        const projPoint = {
+          x: route[0].x + unitX * proj,
+          y: route[0].y + unitY * proj
+        };
+        const dist = Math.hypot(projPoint.x - p.x, projPoint.y - p.y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = projPoint;
+          bestDrop = p;
+        }
+      });
+
+      if (best) {
+        ctx.fillStyle = 'cyan';
+        ctx.beginPath();
+        ctx.arc(best.x, best.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = 'cyan';
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(best.x, best.y);
+        ctx.lineTo(bestDrop.x, bestDrop.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
   </script>
 </body>
 </html>
