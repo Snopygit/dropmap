@@ -45,16 +45,18 @@
     const ctx = canvas.getContext('2d');
     const img = new Image();
     img.src = 'fortnite-dropmaps/assets/map.png';
+
+    img.onload = () => draw();
+    img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden. Stelle sicher, dass der Pfad korrekt ist.");
+
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const index = parseInt(localStorage.getItem('editingDropmapIndex'));
-    const dropmap = dropmaps[index];
+    const dropmap = dropmaps[index] || { points: [] };
 
     let scale = 1, originX = 0, originY = 0;
     let draggingStart = false, draggingEnd = false;
     let startPoint = { x: 200, y: 200 };
     let endPoint = { x: 700, y: 700 };
-
-    img.onload = () => draw();
 
     canvas.addEventListener('mousedown', e => {
       const x = (e.offsetX - originX) / scale;
@@ -99,7 +101,6 @@
       ctx.setTransform(scale, 0, 0, scale, originX, originY);
       ctx.drawImage(img, 0, 0, 900, 900);
 
-      // Dropmap Punkte
       dropmap.points.forEach(p => {
         ctx.fillStyle = 'yellow';
         ctx.beginPath();
@@ -110,7 +111,6 @@
         ctx.stroke();
       });
 
-      // Busroute
       ctx.strokeStyle = 'white';
       ctx.setLineDash([10, 10]);
       ctx.lineWidth = 3;
@@ -120,7 +120,6 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Start/End Marker
       ctx.fillStyle = 'black';
       ctx.strokeStyle = 'white';
       ctx.lineWidth = 3;
