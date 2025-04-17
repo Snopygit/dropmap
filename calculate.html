@@ -58,7 +58,7 @@
 </head>
 <body>
   <div class="header">
-    <img src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap" width="32" height="32">
+    <img src="fortnite-dropmaps/assets/dropmap.png" alt="Dropmap" width="32" height="32">
     <h1>Deine Dropmaps</h1>
   </div>
 
@@ -73,7 +73,7 @@
     const ctx = canvas.getContext('2d');
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const img = new Image();
-    img.src = 'fortnite-dropmap/assets/map.png';
+    img.src = 'fortnite-dropmaps/assets/map.png';
 
     let activeDropmap = null;
     let scale = 1, originX = 0, originY = 0;
@@ -107,10 +107,9 @@
         const card = document.createElement('div');
         card.className = 'dropmap-card';
         card.innerHTML = `
-          <img src="fortnite-dropmap/assets/map.png" alt="Vorschau">
+          <img src="fortnite-dropmaps/assets/map.png" alt="Vorschau">
           <p>${map.name || 'Unbenannt'}</p>
           <button onclick="calculate(${index})">Calculate Drop</button>
-          <button onclick="deleteDropmap(${index})">🗑️ Löschen</button>
         `;
         container.appendChild(card);
       });
@@ -126,14 +125,6 @@
     function calculate(index) {
       activeDropmap = dropmaps[index];
       draw();
-    }
-
-    function deleteDropmap(index) {
-      if (confirm('Diese Dropmap wirklich löschen?')) {
-        dropmaps.splice(index, 1);
-        localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-        renderDropmaps();
-      }
     }
 
     renderDropmaps();
