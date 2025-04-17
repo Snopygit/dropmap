@@ -37,6 +37,23 @@
       font-size: 16px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
+    .side-controls {
+      position: absolute;
+      right: 20px;
+      top: 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .icon-button {
+      font-size: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      text-align: center;
+      padding: 0;
+      line-height: 48px;
+    }
     .popup {
       position: fixed;
       top: 50%;
@@ -57,6 +74,8 @@
       margin: 10px 0;
       border-radius: 10px;
       border: none;
+      background: #333;
+      color: white;
     }
     .overlay {
       position: fixed;
@@ -77,6 +96,13 @@
   </div>
   <canvas id="mapCanvas" width="900" height="900"></canvas>
 
+  <div class="side-controls">
+    <button class="icon-button" onclick="setTool('delete')">🗑️</button>
+    <button id="undoBtn" class="icon-button" onclick="undo()">↩️</button>
+    <button id="redoBtn" class="icon-button" onclick="redo()">↪️</button>
+    <button class="icon-button" onclick="setTool(null)">📍</button>
+  </div>
+
   <div class="overlay" id="overlay"></div>
   <div class="popup" id="popup">
     <label for="dropmapName">Name der Dropmap:</label>
@@ -94,13 +120,43 @@
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));
     const dropmap = dropmaps[editingIndex];
+    let tool = null;
+    let undoStack = [];
+    let redoStack = [];
 
     img.onload = () => draw();
+
+    canvas.addEventListener('click', e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left);
+      const y = (e.clientY - rect.top);
+
+      for (let i = 0; i < dropmap.points.length; i++) {
+        const p = dropmap.points[i];
+        if (Math.hypot(p.x - x, p.y - y) < 10) {
+          if (tool === 'delete') {
+            undoStack.push({ action: 'delete', point: p });
+            dropmap.points.splice(i, 1);
+            draw();
+            updateUndoRedo();
+            return;
+          }
+        }
+      }
+
+      if (!tool) {
+        const newPoint = { x, y };
+        dropmap.points.push(newPoint);
+        undoStack.push({ action: 'add', point: newPoint });
+        redoStack = [];
+        draw();
+        updateUndoRedo();
+      }
+    });
 
     function draw() {
       canvas.width = 900;
       canvas.height = 900;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, 900, 900);
       if (dropmap && dropmap.points) {
@@ -114,6 +170,41 @@
           ctx.stroke();
         });
       }
+    }
+
+    function undo() {
+      const last = undoStack.pop();
+      if (!last) return;
+      if (last.action === 'add') {
+        dropmap.points = dropmap.points.filter(p => p !== last.point);
+      } else if (last.action === 'delete') {
+        dropmap.points.push(last.point);
+      }
+      redoStack.push(last);
+      draw();
+      updateUndoRedo();
+    }
+
+    function redo() {
+      const last = redoStack.pop();
+      if (!last) return;
+      if (last.action === 'add') {
+        dropmap.points.push(last.point);
+      } else if (last.action === 'delete') {
+        dropmap.points = dropmap.points.filter(p => p !== last.point);
+      }
+      undoStack.push(last);
+      draw();
+      updateUndoRedo();
+    }
+
+    function updateUndoRedo() {
+      document.getElementById('undoBtn').classList.toggle('disabled', undoStack.length === 0);
+      document.getElementById('redoBtn').classList.toggle('disabled', redoStack.length === 0);
+    }
+
+    function setTool(t) {
+      tool = t;
     }
 
     function showPopup() {
