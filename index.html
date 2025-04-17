@@ -69,12 +69,14 @@
       dropmaps.forEach((map, index) => {
         const card = document.createElement('div');
         card.className = 'dropmap-card';
-        card.innerHTML = `
-          <img src="fortnite-dropmap/assets/map.png" alt="Vorschau">
-          <p>${map.name || 'Unbenannt'}</p>
-          <button onclick="edit(${index})">Bearbeiten</button>
-          <button onclick="calculate(${index})">Calculate Drop</button>
-        `;
+card.innerHTML = `
+  <img src="fortnite-dropmap/assets/map.png" alt="Vorschau">
+  <p>${map.name || 'Unbenannt'}</p>
+  <button onclick="edit(${index})">Bearbeiten</button>
+  <button onclick="calculate(${index})">Calculate Drop</button>
+  <button onclick="removeDropmap(${index})" style="background:#dc3545">🗑️ Löschen</button>
+`;
+
         container.appendChild(card);
       });
     }
