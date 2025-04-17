@@ -99,6 +99,14 @@ card.innerHTML = `
     }
 
     renderDropmaps();
+    function removeDropmap(index) {
+  if (confirm('Möchtest du diese Dropmap wirklich löschen?')) {
+    dropmaps.splice(index, 1);
+    localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
+    renderDropmaps();
+  }
+}
+
   </script>
 </body>
 </html>
