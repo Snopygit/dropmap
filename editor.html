@@ -73,6 +73,7 @@
     <button onclick="saveDropmap()">💾 Speichern</button>
   </div>
   <div class="side-controls">
+    <button class="icon-button" onclick="setTool('add')">➕</button>
     <button class="icon-button" onclick="setTool('delete')">🗑️</button>
     <button id="undoBtn" class="icon-button" onclick="undo()">↩️</button>
     <button id="redoBtn" class="icon-button" onclick="redo()">↪️</button>
@@ -92,7 +93,7 @@
 
     let scale = 1, originX = 0, originY = 0;
     let draggingMap = false, offsetX = 0, offsetY = 0, draggingPoint = null;
-    let tool = null;
+    let tool = 'add';
 
     const undoStack = [];
     const redoStack = [];
@@ -126,24 +127,23 @@
           }
         }
       }
-      offsetX = e.clientX - originX;
-      offsetY = e.clientY - originY;
-      draggingMap = true;
-    });
-
-    canvas.addEventListener('mouseup', e => {
-      if (!draggingPoint && !draggingMap && tool !== 'delete') {
-        const x = (e.offsetX - originX) / scale;
-        const y = (e.offsetY - originY) / scale;
+      if (tool === 'add') {
         const newPoint = { x, y };
         dropmap.points.push(newPoint);
         undoStack.push({ action: 'add', point: newPoint });
         redoStack.length = 0;
+        draw();
+        updateUndoRedo();
+      } else {
+        offsetX = e.clientX - originX;
+        offsetY = e.clientY - originY;
+        draggingMap = true;
       }
+    });
+
+    canvas.addEventListener('mouseup', () => {
       draggingMap = false;
       draggingPoint = null;
-      draw();
-      updateUndoRedo();
     });
 
     canvas.addEventListener('mousemove', e => {
