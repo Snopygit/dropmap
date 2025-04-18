@@ -4,201 +4,176 @@
   <meta charset="UTF-8">
   <title>Busroute ziehen und Drop berechnen</title>
   <style>
-    body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow-x: hidden; }
-    /* Header */
+    body { margin: 0; background: #111; color: white; font-family: sans-serif; }
+    body.no-scroll { overflow: hidden; }
     .header {
-      position: fixed;
-      top: 10px; left: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      z-index: 1000;
+      width: 100%; display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; position: fixed; top: 0; left: 0; background: #111;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5); z-index: 1000;
     }
+    .header a { display: flex; align-items: center; text-decoration: none; color: white; }
     .header img.logo { width: 32px; height: 32px; border-radius: 4px; }
-    .header .home-text { font-weight: bold; font-size: 18px; color: white; }
+    .header .home-text { margin-left: 8px; font-size: 18px; font-weight: bold; }
+    #userBlock { position: relative; display: flex; align-items: center; gap: 8px; }
+    #userAvatar { width: 32px; height: 32px; border-radius: 50%; }
+    #userName { font-size: 16px; }
 
-    /* User Block */
-    #userBlock {
-      position: fixed;
-      top: 10px; right: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      z-index: 1000;
-      cursor: pointer;
+    #logoutMenu {
+      display: none; position: absolute; top: 110%; right: 0;
+      background: #222; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      z-index: 1001;
     }
-    #userBlock img { width: 32px; height: 32px; border-radius: 50%; }
-    #userBlock span { font-size: 16px; }
-    #logoutMenu { display: none; position: absolute; top: 110%; right: 0; background: #222; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-    #userBlock:hover #logoutMenu { display: block; }
-    #logoutMenu button { width: 100%; background: #dc3545; color: white; border: none; padding: 8px 12px; font-size: 14px; cursor: pointer; border-radius: 4px; }
-
-    /* Title */
-    h2 { margin: 80px 0 20px; text-align: center; }
-
-    /* Map Container */
-    #mapContainer {
-      margin: 0 auto;
-      padding: 0 20px;
-      box-sizing: border-box;
-      width: 100%;
-      max-width: 900px;
-      cursor: grab;
+    #logoutMenu button {
+      display: block; width: 100%; background: #dc3545; color: white;
+      border: none; padding: 8px 12px; font-size: 14px; cursor: pointer; border-radius: 4px;
     }
-    #mapCanvas {
-      display: block;
-      width: 100%; height: auto;
+
+    #mapContainer { margin-top: 80px; display: flex; flex-direction: column; align-items: center; }
+    canvas {
       border: 2px solid #333; border-radius: 10px;
+      max-width: 95vw; height: auto; cursor: grab;
     }
 
-    /* Controls under map */
     .controls {
-      display: flex; gap: 10px;
-      justify-content: center;
-      margin: 20px 0;
-      padding: 0 20px;
+      display: flex; gap: 10px; margin: 20px 0;
     }
     .controls button {
-      padding: 10px 20px; border-radius: 30px;
-      background: #007bff; color: white;
-      font-size: 14px; font-weight: bold;
-      border: none; cursor: pointer;
+      padding: 12px 24px; border-radius: 30px; background: #007bff;
+      color: white; border: none; cursor: pointer;
+      font-weight: bold; font-size: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.7); display: none; z-index: 999;
+    }
+    .popup {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: #222; padding: 20px; border-radius: 20px;
+      box-shadow: 0 0 20px 5px yellow;
+      display: none; flex-direction: column; align-items: center; z-index: 1000;
+      transition: opacity 0.3s ease;
+    }
+    .popup input {
+      padding: 10px; font-size: 16px; margin: 10px 0;
+      border-radius: 10px; border: none; background: #444; color: white;
+    }
+    .save-button {
+      background: #007bff; border: none; color: white;
+      padding: 8px 16px; border-radius: 8px; font-size: 16px;
+      cursor: pointer; margin-top: 10px;
+    }
+    .close-btn {
+      position: absolute; top: 8px; right: 10px; background: transparent;
+      color: white; border: none; font-size: 18px; cursor: pointer;
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
     }
   </style>
 </head>
 <body>
-  <!-- Home Link -->
   <div class="header">
-    <a href="index.html" style="display:flex;align-items:center;text-decoration:none;color:white;">
+    <a href="index.html">
       <img class="logo" src="assets/dropmap.png" alt="Dropmap">
       <span class="home-text">Home</span>
     </a>
-  </div>
-  <!-- User Block -->
-  <div id="userBlock">
-    <img id="userAvatar" src="assets/discord.png" alt="Avatar">
-    <span id="userName">Gast</span>
-    <div id="logoutMenu">
-      <button onclick="logout()">Log out</button>
+    <div id="userBlock">
+      <img id="userAvatar" src="assets/discord.png" alt="Avatar">
+      <span id="userName">Gast</span>
+      <div id="logoutMenu"><button onclick="logout()">Log out</button></div>
     </div>
   </div>
 
-  <h2>Busroute ziehen und Drop berechnen</h2>
+  <h2 style="margin-top: 100px;">Busroute ziehen und Drop berechnen</h2>
+
   <div id="mapContainer">
     <canvas id="mapCanvas" width="900" height="900"></canvas>
+    <div class="controls">
+      <button onclick="calculateDrops()">🎯 FIND BEST DROP</button>
+      <button onclick="resetRoute()">🔄 Reset</button>
+    </div>
   </div>
-  <div class="controls">
-    <button onclick="calculateDrops()">🎯 Calculate Drop</button>
-    <button onclick="resetRoute()">🔄 Reset</button>
+
+  <div class="overlay" id="overlay" onclick="hidePopup(event)"></div>
+  <div class="popup" id="popup">
+    <button class="close-btn" onclick="closePopup()">✖</button>
+    <label for="dropmapName">Name der Dropmap:</label>
+    <input type="text" id="dropmapName" placeholder="z.B. Meine Dropmap">
+    <button class="save-button" onclick="saveDropmapName()">Speichern</button>
   </div>
 
   <script>
-    // User Block Logic
+    // User-Block
     document.addEventListener('DOMContentLoaded', () => {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const avatar = document.getElementById('userAvatar');
-      const nameEl = document.getElementById('userName');
+      const user = JSON.parse(localStorage.getItem('user')||'{}');
       if (user.username) {
-        nameEl.textContent = user.username;
-        if (user.avatarUrl) avatar.src = user.avatarUrl;
+        document.getElementById('userName').textContent = user.username;
+        document.getElementById('userAvatar').src = user.avatarUrl;
       }
+      const ub = document.getElementById('userBlock'), menu = document.getElementById('logoutMenu');
+      ub.addEventListener('mouseenter', ()=> menu.style.display='block');
+      ub.addEventListener('mouseleave', ()=> menu.style.display='none');
     });
     function logout() {
       localStorage.removeItem('user');
       window.location.href = 'index.html';
     }
 
-    // Canvas & Map Logic (unchanged)
-    const canvas = document.getElementById('mapCanvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image(); img.src = 'assets/map.png'; img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden');
+    // Canvas & Map
+    const canvas = document.getElementById('mapCanvas'), ctx = canvas.getContext('2d');
+    const img = new Image(); img.src = 'assets/map.png';
+    img.onerror = ()=> alert('Fehler: Karte konnte nicht geladen werden. Pfad assets/map.png prüfen.');
 
-    const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
-    const idx = +localStorage.getItem('editingDropmapIndex');
-    const dropmap = dropmaps[idx] || { points: [] };
+    let dropmaps = JSON.parse(localStorage.getItem('dropmaps')||'[]');
+    let idx = +localStorage.getItem('editingDropmapIndex');
+    let dropmap = dropmaps[idx]||{points:[]};
+    dropmap.points = dropmap.points||[];
 
-    const route = [{ x: 150, y: 150 }, { x: 750, y: 750 }];
-    let scale = 1, ox = 0, oy = 0, isPanning = false, start = {};
-    let best = null, bestDrop = null;
-
-    img.onload = draw;
+    let scale=1, ox=0, oy=0, drag=null, start=null, offx, offy, best=null;
+    img.onload = () => draw();
 
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      const mx = (e.offsetX - ox) / scale;
-      const my = (e.offsetY - oy) / scale;
-      scale = Math.min(Math.max(0.5, scale + delta), 3);
-      ox = e.offsetX - mx * scale;
-      oy = e.offsetY - my * scale;
+      const d = e.deltaY>0?-0.1:0.1;
+      const mx=(e.offsetX-ox)/scale, my=(e.offsetY-oy)/scale;
+      scale=Math.min(Math.max(0.5,scale+d),3);
+      ox=e.offsetX-mx*scale; oy=e.offsetY-my*scale;
       draw();
     });
-
     canvas.addEventListener('mousedown', e => {
-      isPanning = true;
-      start = { x: e.clientX, y: e.clientY, ox, oy };
+      const x=(e.offsetX-ox)/scale, y=(e.offsetY-oy)/scale;
+      drag='map'; offx=e.clientX-ox; offy=e.clientY-oy;
     });
     canvas.addEventListener('mousemove', e => {
-      if (!isPanning) return;
-      ox = start.ox + (e.clientX - start.x);
-      oy = start.oy + (e.clientY - start.y);
-      draw();
+      if (!drag) return;
+      const x=e.clientX-offx, y=e.clientY-offy;
+      ox=x; oy=y; draw();
     });
-    canvas.addEventListener('mouseup', () => isPanning = false);
-    canvas.addEventListener('mouseleave', () => isPanning = false);
-
-    function drawArrowLine(a, b) {
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const len = Math.hypot(dx, dy), steps = Math.floor(len / 30), ang = Math.atan2(dy, dx);
-      for (let i = 0; i < steps; i++) {
-        const x = a.x + dx * (i / steps), y = a.y + dy * (i / steps);
-        ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
-        ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(5, 0); ctx.lineTo(-5, 5); ctx.closePath();
-        ctx.fillStyle = '#fff'; ctx.fill(); ctx.restore();
-      }
-    }
+    canvas.addEventListener('mouseup', ()=> drag=null);
 
     function draw() {
-      canvas.width = 900; canvas.height = 900;
-      ctx.setTransform(scale, 0, 0, scale, ox, oy);
-      ctx.clearRect(0, 0, 900, 900);
-      ctx.drawImage(img, 0, 0, 900, 900);
-
-      drawArrowLine(route[0], route[1]);
-      route.forEach(p => {
-        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, 2 * Math.PI); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      canvas.width=900; canvas.height=900;
+      ctx.setTransform(scale,0,0,scale,ox,oy);
+      ctx.clearRect(0,0,900,900);
+      ctx.drawImage(img,0,0,900,900);
+      // bus route arrows if any
+      // draw points
+      dropmap.points.forEach(p=>{
+        ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,2*Math.PI); ctx.fill();
+        ctx.strokeStyle='black'; ctx.lineWidth=2; ctx.stroke();
       });
-
-      dropmap.points.forEach(p => {
-        ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI); ctx.fill();
-        ctx.strokeStyle = 'black'; ctx.lineWidth = 2; ctx.stroke();
-      });
-
       if (best) {
-        ctx.fillStyle = 'cyan'; ctx.beginPath(); ctx.arc(best.x, best.y, 8, 0, 2 * Math.PI); ctx.fill();
-        ctx.strokeStyle = 'cyan'; ctx.setLineDash([5, 5]);
-        ctx.beginPath(); ctx.moveTo(best.x, best.y); ctx.lineTo(bestDrop.x, bestDrop.y); ctx.stroke();
-        ctx.setLineDash([]);
+        // draw best drop line
       }
     }
 
-    function resetRoute() { route[0] = { x: 150, y: 150 }; route[1] = { x: 750, y: 750 }; best = null; draw(); }
-    function calculateDrops() {
-      if (!dropmap.points.length) return;
-      const dx = route[1].x - route[0].x, dy = route[1].y - route[0].y;
-      const len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
-      let min = Infinity;
-      dropmap.points.forEach(p => {
-        const px = p.x - route[0].x, py = p.y - route[0].y;
-        const proj = px * ux + py * uy;
-        const projP = { x: route[0].x + ux * proj, y: route[0].y + uy * proj };
-        const d = Math.hypot(projP.x - p.x, projP.y - p.y);
-        if (d < min) { min = d; best = projP; bestDrop = p; }
-      });
-      draw();
-    }
+    function calculateDrops() {/* ... */}
+    function resetRoute(){/* ... */}
+    function showPopup(){/* ... */}
+    function hidePopup(){/* ... */}
+    function closePopup(){/* ... */}
+    function saveDropmapName(){/* ... */}
   </script>
 </body>
 </html>
