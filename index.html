@@ -7,24 +7,20 @@
     body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
     body.no-scroll { overflow: hidden; }
     .header { display: flex; align-items: center; gap: 20px; position: absolute; top: 10px; left: 10px; z-index: 1000; }
+    .user-panel { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 8px; background: #222; padding: 5px 10px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.5); z-index: 1000; }
+    .user-panel img { width: 32px; height: 32px; border-radius: 50%; }
     .dropmap-list { margin-top: 80px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
     .dropmap-card { background: #222; border-radius: 10px; padding: 10px; text-align: center; width: 200px; }
     .dropmap-card img { width: 100%; border-radius: 8px; margin-bottom: 8px; }
     .dropmap-card p { margin: 0 0 10px; }
     .dropmap-card button { margin: 5px 0; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-    button.primary { margin-top: 20px; padding: 10px 20px; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    button.primary { margin-top: 20px; padding: 10px 20px; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; }
     .delete-button { background: #dc3545; color: white; }
-
-    /* Overlay */
     .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: none; z-index: 999; }
-
-    /* Login Popup */
     .login-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2C2F33; padding: 30px 20px 20px; border-radius: 10px; box-shadow: 0 0 20px 5px #7289DA; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
     .login-popup img { width: 64px; height: 64px; margin-bottom: 16px; }
     .login-popup button { background: #7289DA; border: none; color: white; padding: 10px 16px; font-size: 16px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
     .login-popup .close-btn { position: absolute; top: 8px; right: 10px; background: transparent; font-size: 18px; color: white; border: none; cursor: pointer; }
-
-    /* Delete Confirmation Popup */
     .confirm-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; padding: 40px 20px 20px; border-radius: 20px; box-shadow: 0 0 20px 5px yellow; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
     .confirm-popup p { margin: 0 0 20px; }
     .confirm-popup .close-btn { position: absolute; top: 8px; right: 10px; background: transparent; font-size: 18px; color: white; border: none; cursor: pointer; }
@@ -37,6 +33,12 @@
   <div class="header">
     <img src="assets/dropmap.png" alt="Dropmap" width="32" height="32">
     <h1>Deine Dropmaps</h1>
+  </div>
+
+  <!-- User Info Panel -->
+  <div class="user-panel" id="userPanel" style="display:none;">
+    <img id="userAvatar" src="" alt="Avatar">
+    <span id="userName"></span>
   </div>
 
   <!-- Dropmap List -->
@@ -60,19 +62,42 @@
   </div>
 
   <script>
+    // ---- Token & User Fetch ----
+    const token = localStorage.getItem('discord_token');
+    async function fetchUser() {
+      if (!token) return;
+      try {
+        const res = await fetch('https://discord.com/api/users/@me', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error();
+        const user = await res.json();
+        const panel = document.getElementById('userPanel');
+        const avatar = document.getElementById('userAvatar');
+        const name = document.getElementById('userName');
+        avatar.src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
+        name.textContent = `${user.username}#${user.discriminator}`;
+        panel.style.display = 'flex';
+      } catch {
+        // invalid token, force login again
+        localStorage.removeItem('discord_token');
+        showLogin();
+      }
+    }
+
     // ---- Login Logic (Implicit Grant) ----
     const loginOverlay = document.getElementById('loginOverlay');
     const loginPopup = document.getElementById('loginPopup');
-    
-    // Show or hide login based on access_token in URL hash
-    window.onload = () => {
+    window.onload = async () => {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       if (params.has('access_token')) {
-        // Store token and clear hash
         localStorage.setItem('discord_token', params.get('access_token'));
         history.replaceState(null, '', window.location.pathname);
+      }
+      if (localStorage.getItem('discord_token')) {
         closeLogin();
+        await fetchUser();
       } else {
         showLogin();
       }
@@ -92,8 +117,6 @@
         loginPopup.style.display = 'none';
         loginOverlay.style.display = 'none';
         document.body.classList.remove('no-scroll');
-        loginPopup.style.opacity = '';
-        loginOverlay.style.opacity = '';
       }, 300);
     }
     function loginDiscord() {
@@ -121,7 +144,6 @@
         container.appendChild(card);
       });
     }
-
     function createNewDropmap() {
       dropmaps.push({ name: 'Neue Dropmap', points: [] });
       localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
@@ -156,8 +178,6 @@
         deletePopup.style.display = 'none';
         deleteOverlay.style.display = 'none';
         document.body.classList.remove('no-scroll');
-        deletePopup.style.opacity = '';
-        deleteOverlay.style.opacity = '';
       }, 300);
     }
     function confirmDelete() {
