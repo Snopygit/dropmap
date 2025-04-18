@@ -5,6 +5,7 @@
   <title>Busroute ziehen und Drop berechnen</title>
   <style>
     body { margin: 0; background: #111; color: white; font-family: sans-serif; }
+    body.no-scroll { overflow: hidden; }
     /* Header */
     .header {
       position: fixed; top: 10px; left: 20px;
@@ -19,8 +20,10 @@
       position: fixed; top: 10px; right: 20px;
       display: flex; align-items: center; gap: 8px;
       z-index: 1000;
+      cursor: pointer;
     }
     #userBlock img { width: 32px; height: 32px; border-radius: 50%; }
+    #userBlock span { font-size: 16px; }
     #userBlock:hover #logoutMenu { display: block; }
     #logoutMenu {
       position: absolute; top: 110%; right: 0;
@@ -31,7 +34,7 @@
     #logoutMenu button {
       background: #dc3545; color: white;
       border: none; padding: 8px 12px; border-radius: 4px;
-      width: 100%; cursor: pointer;
+      width: 100%; font-size: 14px; cursor: pointer;
     }
 
     /* Map Container */
@@ -87,7 +90,7 @@
     <canvas id="mapCanvas" width="900" height="900"></canvas>
   </div>
   <div class="controls">
-    <button onclick="calculateDrops()">🎯 FIND BEST DROP</button>
+    <button onclick="calculateDrops()">🎯 Calculate Drop</button>
     <button onclick="resetRoute()">🔄 Reset</button>
   </div>
 
@@ -107,11 +110,10 @@
       window.location.href = 'index.html';
     }
 
-    // Canvas & Map Logic
+    // Canvas & Map Logic (unchanged)
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
-    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png';
-    img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden');
+    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png'; img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden');
 
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const idx = +localStorage.getItem('editingDropmapIndex');
@@ -164,24 +166,20 @@
       ctx.drawImage(img,0,0,900,900);
 
       drawArrowLine(route[0],route[1]);
-      // route endpoints
       route.forEach(p=>{
         ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(p.x,p.y,10,0,2*Math.PI); ctx.fill();
         ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
       });
 
-      // drops
       dropmap.points.forEach(p=>{
         ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,2*Math.PI); ctx.fill();
         ctx.strokeStyle='black'; ctx.lineWidth=2; ctx.stroke();
       });
 
-      // best drop
       if(best){
         ctx.fillStyle='cyan'; ctx.beginPath(); ctx.arc(best.x,best.y,8,0,2*Math.PI); ctx.fill();
         ctx.strokeStyle='cyan'; ctx.setLineDash([5,5]);
-        ctx.beginPath(); ctx.moveTo(best.x,best.y); ctx.lineTo(bestDrop.x,bestDrop.y); ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(best.x,best.y); ctx.lineTo(bestDrop.x,bestDrop.y); ctx.stroke(); ctx.setLineDash([]);
       }
     }
 
