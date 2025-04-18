@@ -34,11 +34,13 @@
       position: relative;
       cursor: pointer;
     }
+    .header-left img,
     .header-right img {
       width: 32px;
       height: 32px;
-      border-radius: 50%;
+      border-radius: 4px;
     }
+    .header-left span,
     .header-right span {
       font-size: 16px;
       font-weight: bold;
@@ -54,6 +56,7 @@
       flex-direction: column;
       overflow: hidden;
       transition: opacity 0.2s ease;
+      z-index: 1001;
     }
     .dropdown button {
       background: none;
@@ -67,14 +70,6 @@
     }
     .dropdown button:hover {
       background: #dc3545;
-    }
-    canvas {
-      margin-top: 80px;
-      border: 2px solid #333;
-      border-radius: 10px;
-      max-width: 95vw;
-      height: auto;
-      cursor: crosshair;
     }
     .controls {
       position: fixed;
@@ -98,6 +93,17 @@
       font-weight: bold;
       font-size: 14px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    canvas {
+      margin-top: 120px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      max-width: 95vw;
+      height: auto;
+      cursor: crosshair;
     }
   </style>
 </head>
@@ -105,19 +111,20 @@
   <div class="header">
     <div class="header-left">
       <a href="index.html" style="display:flex; align-items:center; text-decoration:none; color:white; gap:8px;">
-        <img src="assets/dropmap.png" alt="Dropmap" width="32" height="32">
+        <img src="./assets/dropmap.png" alt="Dropmap">
         <span>Home</span>
       </a>
     </div>
     <div class="header-right" id="userMenu">
-      <img id="avatar" src="assets/discord.png" alt="Avatar">
+      <img id="avatar" src="./assets/discord.png" alt="Avatar">
       <span id="username">Gast</span>
       <div class="dropdown" id="userDropdown">
         <button id="logoutBtn">Log out</button>
       </div>
     </div>
   </div>
-  <h2 style="margin-top:120px;">Busroute ziehen und Drop berechnen</h2>
+
+  <h2 style="margin-top:160px;">Busroute ziehen und Drop berechnen</h2>
   <div class="controls">
     <button onclick="calculateDrops()">🎯 FIND BEST DROP</button>
     <button onclick="resetRoute()">🔄 Reset</button>
@@ -132,9 +139,14 @@
     const usernameField = document.getElementById('username');
     const logoutBtn = document.getElementById('logoutBtn');
     // load user from storage
-    const user = JSON.parse(localStorage.getItem('user')) || { name: 'Gast', avatar: 'assets/discord.png' };
-    avatar.src = user.avatar;
-    usernameField.textContent = user.name;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.name) {
+      avatar.src = user.avatar;
+      usernameField.textContent = user.name;
+    } else {
+      avatar.src = './assets/discord.png';
+      usernameField.textContent = 'Gast';
+    }
     userMenu.addEventListener('mouseenter', () => {
       dropdown.style.display = 'flex';
       dropdown.style.opacity = '0';
@@ -152,9 +164,9 @@
     // --- Map & Route ---
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
-    const img = new Image(); img.src = 'assets/map.png';
+    const img = new Image(); img.src = './assets/map.png';
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
-    const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));
+    const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));  
     const dropmap = dropmaps[editingIndex];
     if (!dropmap || !dropmap.points) { alert("Keine gültige Dropmap gefunden."); window.location.href = 'index.html'; }
 
