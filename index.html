@@ -12,8 +12,10 @@
     .user-panel .name { position: relative; cursor: pointer; }
     .logout-menu { position: absolute; top: 100%; right: 0; background: #222; padding: 8px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: none; opacity: 0; transition: opacity 0.3s ease; }
     .logout-menu button { background: #dc3545; border: none; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .user-panel .name:hover + .logout-menu,
-    .logout-menu:hover { display: block; opacity: 1; }
+    .user-panel:hover .logout-menu {
+      display: block;
+      opacity: 1;
+    }
     .dropmap-list { margin-top: 80px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
     .dropmap-card { background: #222; border-radius: 10px; padding: 10px; text-align: center; width: 200px; }
     .dropmap-card img { width: 100%; border-radius: 8px; margin-bottom: 8px; }
