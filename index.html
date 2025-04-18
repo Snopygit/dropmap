@@ -9,99 +9,139 @@
     .header { display: flex; align-items: center; gap: 20px; position: absolute; top: 10px; left: 10px; }
     .dropmap-list { margin-top: 80px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
     .dropmap-card { background: #222; border-radius: 10px; padding: 10px; text-align: center; width: 200px; }
-    .dropmap-card img { width: 100%; border-radius: 8px; }
-    button { margin-top: 10px; padding: 10px; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-    .delete-button { background: #dc3545; }
+    .dropmap-card img { width: 100%; border-radius: 8px; margin-bottom: 8px; }
+    .dropmap-card p { margin: 0 0 10px; }
+    .dropmap-card button { margin: 5px 0; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+    button.primary { margin-top: 20px; padding: 10px 20px; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    .delete-button { background: #dc3545; color: white; }
 
-    /* Overlay */
+    /* Overlays */
     .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: none; z-index: 999; }
+
     /* Login Popup */
     .login-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2C2F33; padding: 30px 20px 20px; border-radius: 10px; box-shadow: 0 0 20px 5px #7289DA; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
     .login-popup img { width: 64px; height: 64px; margin-bottom: 16px; }
-    .login-popup button { background: #7289DA; }
+    .login-popup button { background: #7289DA; border: none; color: white; padding: 10px 16px; font-size: 16px; border-radius: 5px; cursor: pointer; }
+    .login-popup .close-btn { position: absolute; top: 8px; right: 10px; background: transparent; font-size: 18px; color: white; border: none; cursor: pointer; }
+
     /* Delete Confirmation Popup */
-    .popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; padding: 40px 20px 20px; border-radius: 20px; box-shadow: 0 0 20px 5px yellow; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
-    .popup p { margin: 0 0 10px; }
-    .close-btn { position: absolute; top: 8px; right: 10px; background: transparent; color: white; border: none; font-size: 18px; cursor: pointer; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .confirm-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; padding: 40px 20px 20px; border-radius: 20px; box-shadow: 0 0 20px 5px yellow; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
+    .confirm-popup p { margin: 0 0 20px; }
+    .confirm-popup .close-btn { position: absolute; top: 8px; right: 10px; background: transparent; font-size: 18px; color: white; border: none; cursor: pointer; }
+    .confirm-popup button { padding: 10px 20px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; }
+    .confirm-popup .delete-button { background: #dc3545; }
   </style>
 </head>
 <body>
+  <!-- Header -->
   <div class="header">
     <img src="assets/dropmap.png" alt="Dropmap" width="32" height="32">
     <h1>Deine Dropmaps</h1>
   </div>
 
+  <!-- Dropmap List -->
   <div class="dropmap-list" id="dropmapList"></div>
-  <button onclick="createNewDropmap()">➕ Neue Dropmap</button>
+  <button class="primary" onclick="createNewDropmap()">➕ Neue Dropmap</button>
 
   <!-- Login Popup -->
   <div class="overlay" id="loginOverlay"></div>
   <div class="login-popup" id="loginPopup">
+    <button class="close-btn" onclick="closeLogin()">✖</button>
     <img src="assets/discord.png" alt="Discord Login">
-    <button onclick="location.href='https://discord.com/oauth2/authorize?client_id=1362743453066203186&response_type=code&redirect_uri=https%3A%2F%2Fsnopygit.github.io%2Fdropmap%2F&scope=email+identify'">Login mit Discord</button>
+    <button onclick="loginDiscord()">Login mit Discord</button>
   </div>
 
   <!-- Delete Confirmation Popup -->
   <div class="overlay" id="deleteOverlay"></div>
-  <div class="popup" id="deletePopup">
-    <button class="close-btn" onclick="closeDeletePopup()">✖</button>
+  <div class="confirm-popup" id="deletePopup">
+    <button class="close-btn" onclick="closeDelete()">✖</button>
     <p>Diese Dropmap wirklich löschen?</p>
     <button class="delete-button" onclick="confirmDelete()">🗑️ Löschen</button>
   </div>
 
   <script>
-    // Show login popup on page load
-    document.body.classList.add('no-scroll');
+    // ---- Login Logic ----
     const loginOverlay = document.getElementById('loginOverlay');
     const loginPopup = document.getElementById('loginPopup');
     function showLogin() {
+      document.body.classList.add('no-scroll');
       loginOverlay.style.display = 'block';
-      loginPopup.style.display = 'flex'; loginPopup.style.opacity = '0';
+      loginPopup.style.display = 'flex';
+      loginPopup.style.opacity = '0';
       setTimeout(() => loginPopup.style.opacity = '1', 10);
+    }
+    function closeLogin() {
+      loginPopup.style.opacity = '0';
+      loginOverlay.style.opacity = '0';
+      setTimeout(() => {
+        loginPopup.style.display = 'none';
+        loginOverlay.style.display = 'none';
+        document.body.classList.remove('no-scroll');
+        loginPopup.style.opacity = '';
+        loginOverlay.style.opacity = '';
+      }, 300);
+    }
+    function loginDiscord() {
+      document.body.classList.remove('no-scroll');
+      window.location.href = 'https://discord.com/oauth2/authorize?client_id=1362743453066203186&response_type=code&redirect_uri='+
+        encodeURIComponent('https://snopygit.github.io/dropmap/') + '&scope=email%20identify';
     }
     window.onload = showLogin;
 
-    // Dropmap rendering
+    // ---- Dropmap Management ----
     const container = document.getElementById('dropmapList');
     let dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
+    let deleteIndex = null;
+
     function renderDropmaps() {
       container.innerHTML = '';
-      dropmaps.forEach((map, index) => {
+      dropmaps.forEach((map, idx) => {
         const card = document.createElement('div');
         card.className = 'dropmap-card';
         card.innerHTML = `
           <img src="assets/map.png" alt="Vorschau">
           <p>${map.name || 'Unbenannt'}</p>
-          <button onclick="editDropmap(${index})">🖊️ Bearbeiten</button>
-          <button onclick="calculateDrop(${index})">🎯 Calculate Drop</button>
-          <button class="delete-button" onclick="showDeletePopup(${index})">🗑️ Löschen</button>
+          <button onclick="editDropmap(${idx})">🖊️ Bearbeiten</button>
+          <button onclick="calculateDrop(${idx})">🎯 Calculate Drop</button>
+          <button class="delete-button" onclick="showDelete(${idx})">🗑️ Löschen</button>
         `;
         container.appendChild(card);
       });
     }
+
     function createNewDropmap() {
       dropmaps.push({ name: 'Neue Dropmap', points: [] });
       localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
       localStorage.setItem('editingDropmapIndex', dropmaps.length - 1);
       window.location.href = 'editor.html';
     }
-    function editDropmap(i) { localStorage.setItem('editingDropmapIndex', i); window.location.href = 'editor.html'; }
-    function calculateDrop(i) { localStorage.setItem('editingDropmapIndex', i); window.location.href = 'calculate.html'; }
+    function editDropmap(i) {
+      localStorage.setItem('editingDropmapIndex', i);
+      window.location.href = 'editor.html';
+    }
+    function calculateDrop(i) {
+      localStorage.setItem('editingDropmapIndex', i);
+      window.location.href = 'calculate.html';
+    }
 
-    // Delete popup logic
-    let deleteIndex = null;
-    function showDeletePopup(index) {
-      deleteIndex = index;
+    // ---- Delete Confirmation ----
+    const deleteOverlay = document.getElementById('deleteOverlay');
+    const deletePopup = document.getElementById('deletePopup');
+    function showDelete(i) {
+      deleteIndex = i;
       document.body.classList.add('no-scroll');
       deleteOverlay.style.display = 'block';
-      deletePopup.style.display = 'flex'; deletePopup.style.opacity = '0';
+      deletePopup.style.display = 'flex';
+      deletePopup.style.opacity = '0';
       setTimeout(() => deletePopup.style.opacity = '1', 10);
     }
-    function closeDeletePopup(e) {
+    function closeDelete(e) {
       if (e && e.target.id !== 'deleteOverlay') return;
-      deletePopup.style.opacity = '0'; deleteOverlay.style.opacity = '0';
+      deletePopup.style.opacity = '0';
+      deleteOverlay.style.opacity = '0';
       setTimeout(() => {
-        deletePopup.style.display = 'none'; deleteOverlay.style.display = 'none';
+        deletePopup.style.display = 'none';
+        deleteOverlay.style.display = 'none';
         document.body.classList.remove('no-scroll');
         deletePopup.style.opacity = '';
         deleteOverlay.style.opacity = '';
@@ -110,130 +150,11 @@
     function confirmDelete() {
       dropmaps.splice(deleteIndex, 1);
       localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      closeDeletePopup();
+      closeDelete();
       renderDropmaps();
     }
 
-    renderDropmaps();
-  </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <title>Deine Dropmaps</title>
-  <style>
-    body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
-    body.no-scroll { overflow: hidden; }
-    .header { display: flex; align-items: center; gap: 20px; position: absolute; top: 10px; left: 10px; }
-    .dropmap-list { margin-top: 80px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
-    .dropmap-card { background: #222; border-radius: 10px; padding: 10px; text-align: center; width: 200px; }
-    .dropmap-card img { width: 100%; border-radius: 8px; }
-    button { margin-top: 10px; padding: 10px; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-    .delete-button { background: #dc3545; }
-
-    /* Overlay */
-    .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: none; z-index: 999; }
-    /* Login Popup */
-    .login-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2C2F33; padding: 30px 20px 20px; border-radius: 10px; box-shadow: 0 0 20px 5px #7289DA; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
-    .login-popup img { width: 64px; height: 64px; margin-bottom: 16px; }
-    .login-popup button { background: #7289DA; }
-    /* Delete Confirmation Popup */
-    .popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; padding: 40px 20px 20px; border-radius: 20px; box-shadow: 0 0 20px 5px yellow; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
-    .popup p { margin: 0 0 10px; }
-    .close-btn { position: absolute; top: 8px; right: 10px; background: transparent; color: white; border: none; font-size: 18px; cursor: pointer; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <img src="assets/dropmap.png" alt="Dropmap" width="32" height="32">
-    <h1>Deine Dropmaps</h1>
-  </div>
-
-  <div class="dropmap-list" id="dropmapList"></div>
-  <button onclick="createNewDropmap()">➕ Neue Dropmap</button>
-
-  <!-- Login Popup -->
-  <div class="overlay" id="loginOverlay"></div>
-  <div class="login-popup" id="loginPopup">
-    <img src="assets/discord.png" alt="Discord Login">
-    <button onclick="location.href='https://discord.com/oauth2/authorize?client_id=1362743453066203186&response_type=code&redirect_uri=https%3A%2F%2Fsnopygit.github.io%2Fdropmap%2F&scope=email+identify'">Login mit Discord</button>
-  </div>
-
-  <!-- Delete Confirmation Popup -->
-  <div class="overlay" id="deleteOverlay"></div>
-  <div class="popup" id="deletePopup">
-    <button class="close-btn" onclick="closeDeletePopup()">✖</button>
-    <p>Diese Dropmap wirklich löschen?</p>
-    <button class="delete-button" onclick="confirmDelete()">🗑️ Löschen</button>
-  </div>
-
-  <script>
-    // Show login popup on page load
-    document.body.classList.add('no-scroll');
-    const loginOverlay = document.getElementById('loginOverlay');
-    const loginPopup = document.getElementById('loginPopup');
-    function showLogin() {
-      loginOverlay.style.display = 'block';
-      loginPopup.style.display = 'flex'; loginPopup.style.opacity = '0';
-      setTimeout(() => loginPopup.style.opacity = '1', 10);
-    }
-    window.onload = showLogin;
-
-    // Dropmap rendering
-    const container = document.getElementById('dropmapList');
-    let dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
-    function renderDropmaps() {
-      container.innerHTML = '';
-      dropmaps.forEach((map, index) => {
-        const card = document.createElement('div');
-        card.className = 'dropmap-card';
-        card.innerHTML = `
-          <img src="assets/map.png" alt="Vorschau">
-          <p>${map.name || 'Unbenannt'}</p>
-          <button onclick="editDropmap(${index})">🖊️ Bearbeiten</button>
-          <button onclick="calculateDrop(${index})">🎯 Calculate Drop</button>
-          <button class="delete-button" onclick="showDeletePopup(${index})">🗑️ Löschen</button>
-        `;
-        container.appendChild(card);
-      });
-    }
-    function createNewDropmap() {
-      dropmaps.push({ name: 'Neue Dropmap', points: [] });
-      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      localStorage.setItem('editingDropmapIndex', dropmaps.length - 1);
-      window.location.href = 'editor.html';
-    }
-    function editDropmap(i) { localStorage.setItem('editingDropmapIndex', i); window.location.href = 'editor.html'; }
-    function calculateDrop(i) { localStorage.setItem('editingDropmapIndex', i); window.location.href = 'calculate.html'; }
-
-    // Delete popup logic
-    let deleteIndex = null;
-    function showDeletePopup(index) {
-      deleteIndex = index;
-      document.body.classList.add('no-scroll');
-      deleteOverlay.style.display = 'block';
-      deletePopup.style.display = 'flex'; deletePopup.style.opacity = '0';
-      setTimeout(() => deletePopup.style.opacity = '1', 10);
-    }
-    function closeDeletePopup(e) {
-      if (e && e.target.id !== 'deleteOverlay') return;
-      deletePopup.style.opacity = '0'; deleteOverlay.style.opacity = '0';
-      setTimeout(() => {
-        deletePopup.style.display = 'none'; deleteOverlay.style.display = 'none';
-        document.body.classList.remove('no-scroll');
-        deletePopup.style.opacity = '';
-        deleteOverlay.style.opacity = '';
-      }, 300);
-    }
-    function confirmDelete() {
-      dropmaps.splice(deleteIndex, 1);
-      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      closeDeletePopup();
-      renderDropmaps();
-    }
-
+    // Initial render
     renderDropmaps();
   </script>
 </body>
