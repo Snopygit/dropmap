@@ -25,15 +25,15 @@
 <body>
   <!-- Home-Link -->
   <div class="header">
-    <a href="index.html" style="display:flex; align-items:center; text-decoration:none; color:white;">
-      <img src="assets/dropmap.png" alt="Home">
+    <a href="/dropmap/index.html" style="display:flex; align-items:center; text-decoration:none; color:white;">
+      <img src="/dropmap/assets/dropmap.png" alt="Home">
       <span>Home</span>
     </a>
   </div>
 
   <!-- User Info -->
   <div class="user-info" id="userInfo">
-    <img src="assets/discord.png" id="userAvatar" alt="Avatar">
+    <img src="/dropmap/assets/discord.png" id="userAvatar" alt="Avatar">
     <span id="userName">Gast</span>
     <div class="user-dropdown" id="userDropdown">
       <button id="logoutBtn">Ausloggen</button>
@@ -66,15 +66,15 @@
     ui.addEventListener('mouseleave', () => dd.style.display = 'none');
     document.getElementById('logoutBtn').addEventListener('click', () => {
       localStorage.removeItem('user');
-      window.location.href = 'index.html';
+      window.location.href = '/dropmap/index.html';
     });
 
     // --- Canvas & Map ---
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    img.src = './assets/map.png';
-    img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden. Überprüfe "./assets/map.png".');
+    img.src = '/dropmap/assets/map.png';
+    img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden. Überprüfe "/dropmap/assets/map.png".');
 
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const idx = +localStorage.getItem('editingDropmapIndex');
