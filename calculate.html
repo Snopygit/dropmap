@@ -15,14 +15,8 @@
     .user-panel { display: flex; align-items: center; gap: 8px; background: #222; padding: 4px 8px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.5); cursor: pointer; position: relative; }
     .user-panel img { width: 32px; height: 32px; border-radius: 50%; }
     .user-panel .name { font-size: 16px; }
-    .logout-menu { position: absolute; top: 110%; right: 0; background: #222; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: none; opacity: 0; transition: opacity 0.3s ease; z-index: 1001; }
+    .logout-menu { position: absolute; top: 110%; right: 0; background: #222; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: none; z-index: 1001; }
     .logout-menu button { background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    /* Keep logout menu visible when hovering */
-    .user-panel:hover .logout-menu,
-    .logout-menu:hover {
-      display: block;
-      opacity: 1;
-    }
 
     /* Title */
     h2 { margin-top: 70px; text-align: center; }
@@ -79,11 +73,21 @@
       localStorage.removeItem('discord_token');
       window.location.href = 'index.html';
     }
-    window.addEventListener('load', fetchUser);
+    window.addEventListener('load', () => {
+      fetchUser();
+      const userPanel = document.getElementById('userPanel');
+      const logoutMenu = document.getElementById('logoutMenu');
+      userPanel.addEventListener('mouseenter', () => logoutMenu.style.display = 'block');
+      userPanel.addEventListener('mouseleave', () => {
+        // delay to allow moving into menu
+        setTimeout(() => {
+          if (!logoutMenu.matches(':hover')) logoutMenu.style.display = 'none';
+        }, 100);
+      });
+      logoutMenu.addEventListener('mouseleave', () => logoutMenu.style.display = 'none');
+    });
 
     // Canvas & Map Logic (unchanged)
     const canvas = document.getElementById('mapCanvas'), ctx = canvas.getContext('2d');
     // ... rest of script remains the same ...
   </script>
-</body>
-</html>
