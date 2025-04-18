@@ -60,9 +60,24 @@
   </div>
 
   <script>
-    // ---- Login Logic ----
+    // ---- Login Logic (Implicit Grant) ----
     const loginOverlay = document.getElementById('loginOverlay');
     const loginPopup = document.getElementById('loginPopup');
+    
+    // Show or hide login based on access_token in URL hash
+    window.onload = () => {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      if (params.has('access_token')) {
+        // Store token and clear hash
+        localStorage.setItem('discord_token', params.get('access_token'));
+        history.replaceState(null, '', window.location.pathname);
+        closeLogin();
+      } else {
+        showLogin();
+      }
+    };
+
     function showLogin() {
       document.body.classList.add('no-scroll');
       loginOverlay.style.display = 'block';
@@ -83,9 +98,8 @@
     }
     function loginDiscord() {
       const redirectUri = encodeURIComponent('https://snopygit.github.io/dropmap/');
-      window.location.href = `https://discord.com/oauth2/authorize?client_id=1362743453066203186&response_type=code&redirect_uri=${redirectUri}&scope=identify%20email`;
+      window.location.href = `https://discord.com/oauth2/authorize?client_id=1362743453066203186&response_type=token&redirect_uri=${redirectUri}&scope=identify%20email`;
     }
-    window.onload = showLogin;
 
     // ---- Dropmap Management ----
     const container = document.getElementById('dropmapList');
