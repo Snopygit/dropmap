@@ -38,7 +38,7 @@
       <span class="home-text">Home</span>
     </a>
     <div id="userBlock">
-      <img id="userAvatar" src="assets/discord.png" alt="Avatar">
+      <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
       <span id="userName">Gast</span>
       <div id="logoutMenu">
         <button onclick="logout()">Log out</button>
@@ -85,7 +85,7 @@
     // Map & Canvas Logic
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
-    const img = new Image(); img.src = 'assets/map.png'; img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden.");
+    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png'; img.onerror = () => alert("Fehler: Karte konnte nicht geladen werden.");
 
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const editingIndex = +localStorage.getItem('editingDropmapIndex');
