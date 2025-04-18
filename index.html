@@ -105,20 +105,24 @@
     // ---- Login Logic (Implicit Grant) ----
     const loginOverlay = document.getElementById('loginOverlay');
     const loginPopup = document.getElementById('loginPopup');
-    window.onload = async () => {
+    window.addEventListener('load', async () => {
+      // Check URL fragment for access_token (Implicit Grant)
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       if (params.has('access_token')) {
         localStorage.setItem('discord_token', params.get('access_token'));
+        // Remove token from URL
         history.replaceState(null, '', window.location.pathname);
       }
-      if (localStorage.getItem('discord_token')) {
+      // If logged in, fetch user; otherwise, show login
+      const token = localStorage.getItem('discord_token');
+      if (token) {
         closeLogin();
         await fetchUser();
       } else {
         showLogin();
       }
-    };
+    });
 
     function showLogin() {
       document.body.classList.add('no-scroll');
