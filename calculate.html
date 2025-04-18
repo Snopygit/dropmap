@@ -13,6 +13,7 @@
     /* User Block */
     #userBlock { position: fixed; top: 10px; right: 20px; display: flex; align-items: center; gap: 8px; cursor: pointer; z-index: 1000; }
     #userBlock img { width: 32px; height: 32px; border-radius: 50%; }
+    #userBlock .name { color: white; }
     #logoutMenu { position: absolute; top: 110%; right: 0; background: #222; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: none; }
     #logoutMenu button { background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     #userBlock:hover #logoutMenu { display: block; }
@@ -39,7 +40,7 @@
 
   <div id="userBlock">
     <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
-    <span id="userName">Gast</span>
+    <span class="name" id="userName">Gast</span>
     <div id="logoutMenu"><button onclick="logout()">🚪 Log out</button></div>
   </div>
 
