@@ -75,11 +75,11 @@
 <body>
   <div class="header">
     <a href="index.html">
-      <img class="logo" src="assets/dropmap.png" alt="Dropmap">
+      <img class="logo" src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap">
       <span class="home-text">Home</span>
     </a>
     <div id="userBlock">
-      <img id="userAvatar" src="assets/discord.png" alt="Avatar">
+      <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
       <span id="userName">Gast</span>
       <div id="logoutMenu"><button onclick="logout()">Log out</button></div>
     </div>
@@ -122,8 +122,8 @@
 
     // Canvas & Map
     const canvas = document.getElementById('mapCanvas'), ctx = canvas.getContext('2d');
-    const img = new Image(); img.src = 'assets/map.png';
-    img.onerror = ()=> alert('Fehler: Karte konnte nicht geladen werden. Pfad assets/map.png prüfen.');
+    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png';
+    img.onerror = ()=> alert('Fehler: Karte konnte nicht geladen werden. Pfad fortnite-dropmap/assets/map.png prüfen.');
 
     let dropmaps = JSON.parse(localStorage.getItem('dropmaps')||'[]');
     let idx = +localStorage.getItem('editingDropmapIndex');
@@ -142,13 +142,11 @@
       draw();
     });
     canvas.addEventListener('mousedown', e => {
-      const x=(e.offsetX-ox)/scale, y=(e.offsetY-oy)/scale;
       drag='map'; offx=e.clientX-ox; offy=e.clientY-oy;
     });
     canvas.addEventListener('mousemove', e => {
       if (!drag) return;
-      const x=e.clientX-offx, y=e.clientY-offy;
-      ox=x; oy=y; draw();
+      ox=e.clientX-offx; oy=e.clientY-offy; draw();
     });
     canvas.addEventListener('mouseup', ()=> drag=null);
 
@@ -157,23 +155,18 @@
       ctx.setTransform(scale,0,0,scale,ox,oy);
       ctx.clearRect(0,0,900,900);
       ctx.drawImage(img,0,0,900,900);
-      // bus route arrows if any
-      // draw points
       dropmap.points.forEach(p=>{
         ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,2*Math.PI); ctx.fill();
         ctx.strokeStyle='black'; ctx.lineWidth=2; ctx.stroke();
       });
-      if (best) {
-        // draw best drop line
-      }
     }
 
-    function calculateDrops() {/* ... */}
-    function resetRoute(){/* ... */}
-    function showPopup(){/* ... */}
-    function hidePopup(){/* ... */}
-    function closePopup(){/* ... */}
-    function saveDropmapName(){/* ... */}
+    function calculateDrops() { /* ... */ }
+    function resetRoute(){ /* ... */ }
+    function showPopup(){ /* ... */ }
+    function hidePopup(){ /* ... */ }
+    function closePopup(){ /* ... */ }
+    function saveDropmapName(){ /* ... */ }
   </script>
 </body>
 </html>
