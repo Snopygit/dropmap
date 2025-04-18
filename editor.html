@@ -4,128 +4,162 @@
   <meta charset="UTF-8">
   <title>Busroute ziehen und Drop berechnen</title>
   <style>
-    body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
-    body.no-scroll { overflow: hidden; }
-    .header { display: flex; align-items: center; gap: 20px; position: absolute; top: 10px; left: 10px; }
+    body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow: hidden; }
+    /* Header */
+    .header { position: fixed; top: 10px; left: 20px; display: flex; align-items: center; gap: 8px; z-index: 1000; }
     .header img { width: 32px; height: 32px; border-radius: 4px; }
-    .header h1 { margin: 0; font-size: 24px; color: white; }
-    .dropmap-list { margin-top: 80px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
-    .dropmap-card { background: #222; border-radius: 10px; padding: 10px; text-align: center; width: 200px; }
-    .dropmap-card img { width: 100%; border-radius: 8px; }
-    .controls { display: flex; gap: 10px; justify-content: center; margin: 20px 0; padding: 0 20px; }
+    .header .home-text { font-weight: bold; font-size: 18px; color: white; text-decoration: none; }
+
+    /* User Panel */
+    #userPanel { position: fixed; top: 10px; right: 20px; display: none; align-items: center; gap: 8px; background: #222; padding: 5px 10px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.5); z-index: 1000; }
+    #userPanel img { width: 32px; height: 32px; border-radius: 50%; }
+    #userPanel .name { color: white; cursor: pointer; position: relative; }
+    #logoutMenu { position: absolute; top: 110%; right: 0; background: #222; padding: 8px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: none; }
+    #logoutMenu button { background: #dc3545; border: none; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    #userPanel:hover #logoutMenu { display: block; }
+
+    /* Title */
+    h2 { margin-top: 80px; text-align: center; }
+
+    /* Map Container */
+    #mapContainer { margin: 0 auto; margin-top: 20px; width: 100%; max-width: 900px; position: relative; }
+    canvas { width: 100%; height: auto; border: 2px solid #333; border-radius: 10px; cursor: grab; }
+
+    /* Controls under map */
+    .controls { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
     .controls button { padding: 10px 20px; border: none; border-radius: 30px; background: #007bff; color: white; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; }
-    .delete-button { background: #dc3545; }
-    .login-overlay, .delete-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: none; z-index: 999; }
-
-    /* Login Popup */
-    .login-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2C2F33; padding: 30px 20px 20px; border-radius: 10px; box-shadow: 0 0 20px 5px #7289DA; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
-    .login-popup img { width: 64px; height: 64px; margin-bottom: 16px; }
-    .login-popup button { background: #7289DA; border: none; color: white; padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-
-    /* Delete Confirmation Popup */
-    .popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; padding: 40px 20px 20px; border-radius: 20px; box-shadow: 0 0 20px 5px yellow; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
-    .popup p { margin: 0 0 10px; }
-    .close-btn { position: absolute; top: 8px; right: 10px; background: transparent; color: white; border: none; font-size: 18px; cursor: pointer; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
   </style>
 </head>
 <body>
   <div class="header">
-    <img src="assets/dropmap.png" alt="Dropmap">
-    <h1>Deine Dropmaps</h1>
+    <a href="index.html"><img src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap"><span class="home-text">Home</span></a>
   </div>
 
-  <div class="login-overlay" id="loginOverlay"></div>
-  <div class="login-popup" id="loginPopup">
-    <img src="assets/discord.png" alt="Discord Login">
-    <button onclick="location.href='https://discord.com/oauth2/authorize?client_id=1362743453066203186&response_type=code&redirect_uri=https%3A%2F%2Fsnopygit.github.io%2Fdropmap%2F&scope=email+identify'">Login mit Discord</button>
+  <!-- User Panel -->
+  <div id="userPanel">
+    <img id="userAvatar" src="" alt="Avatar">
+    <span class="name" id="userName"></span>
+    <div id="logoutMenu"><button onclick="logout()">🚪 Logout</button></div>
   </div>
 
-  <div class="delete-overlay" id="deleteOverlay"></div>
-  <div class="popup" id="deletePopup">
-    <button class="close-btn" onclick="closeDeletePopup()">✖</button>
-    <p>Diese Dropmap wirklich löschen?</p>
-    <button class="delete-button" onclick="confirmDelete()">🗑️ Löschen</button>
+  <h2>Busroute ziehen und Drop berechnen</h2>
+  <div id="mapContainer"><canvas id="mapCanvas" width="900" height="900"></canvas></div>
+  <div class="controls">
+    <button onclick="calculateDrops()">🎯 FIND BEST DROP</button>
+    <button onclick="resetRoute()">🔄 Reset</button>
   </div>
-
-  <div class="dropmap-list" id="dropmapList"></div>
-  <button onclick="createNewDropmap()">➕ Neue Dropmap</button>
 
   <script>
-    // Show login popup on page load
-    document.body.classList.add('no-scroll');
-    const loginOverlay = document.getElementById('loginOverlay');
-    const loginPopup = document.getElementById('loginPopup');
-    function showLogin() {
-      loginOverlay.style.display = 'block';
-      loginPopup.style.display = 'flex'; loginPopup.style.opacity = '0';
-      setTimeout(() => loginPopup.style.opacity = '1', 10);
+    // === User Fetch ===
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.username && user.avatarUrl) {
+        document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
+        document.getElementById('userAvatar').src = user.avatarUrl;
+        document.getElementById('userPanel').style.display = 'flex';
+      } else {
+        // Redirect if not logged in
+        window.location.href = 'index.html';
+      }
+    });
+    function logout() {
+      localStorage.removeItem('user');
+      window.location.href = 'index.html';
     }
-    window.onload = showLogin;
 
-    const container = document.getElementById('dropmapList');
-    let dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
-    let deleteIndex = null;
+    // === Map & Canvas ===
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png';
+    img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden.');
 
-    function renderDropmaps() {
-      container.innerHTML = '';
-      dropmaps.forEach((map, index) => {
-        const card = document.createElement('div');
-        card.className = 'dropmap-card';
-        card.innerHTML = `
-          <img src="assets/map.png" alt="Vorschau">
-          <p>${map.name || 'Unbenannt'}</p>
-          <button onclick="editDropmap(${index})">🖊️ Bearbeiten</button>
-          <button onclick="calculateDrop(${index})">🎯 Calculate Drop</button>
-          <button class="delete-button" onclick="showDeletePopup(${index})">🗑️ Löschen</button>
-        `;
-        container.appendChild(card);
+    const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
+    const idx = +localStorage.getItem('editingDropmapIndex');
+    const dropmap = dropmaps[idx] || { points: [] };
+    const route = [{ x:150,y:150 },{ x:750,y:750 }];
+
+    let scale=1, ox=0, oy=0, dragStart=null, dragging=null, offX=0, offY=0, bestLine=null;
+    img.onload = draw;
+
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY>0?-0.1:0.1;
+      const mx=(e.offsetX-ox)/scale, my=(e.offsetY-oy)/scale;
+      scale = Math.min(Math.max(0.5, scale+delta), 3);
+      ox = e.offsetX - mx*scale;
+      oy = e.offsetY - my*scale;
+      draw();
+    });
+
+    canvas.addEventListener('mousedown', e => {
+      dragStart = { x:e.clientX, y:e.clientY };
+      dragging = 'map'; offX = e.clientX-ox; offY = e.clientY-oy;
+      const rect = canvas.getBoundingClientRect();
+      const x=(e.clientX-rect.left-ox)/scale;
+      const y=(e.clientY-rect.top-oy)/scale;
+      route.forEach((pt,i)=>{
+        if(Math.hypot(pt.x-x,pt.y-y)<12){ dragging=i; offX=pt.x-x; offY=pt.y-y; }
       });
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (!dragStart) return;
+      if (dragging==='map') { ox=e.clientX-offX; oy=e.clientY-offY; }
+      else {
+        const rect=canvas.getBoundingClientRect();
+        const x=(e.clientX-rect.left-ox)/scale;
+        const y=(e.clientY-rect.top-oy)/scale;
+        route[dragging] = { x:x+offX, y:y+offY };
+      }
+      draw();
+    });
+
+    canvas.addEventListener('mouseup', ()=>{ dragStart=null; dragging=null; });
+
+    function drawArrow(a,b){ const dx=b.x-a.x, dy=b.y-a.y;
+      const len=Math.hypot(dx,dy), steps=Math.floor(len/30), ang=Math.atan2(dy,dx);
+      for(let i=0;i<steps;i++){ const x=a.x+dx*(i/steps), y=a.y+dy*(i/steps);
+        ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+        ctx.beginPath(); ctx.moveTo(-5,-5); ctx.lineTo(5,0); ctx.lineTo(-5,5); ctx.closePath();
+        ctx.fillStyle='#fff'; ctx.fill(); ctx.restore();
+      }
     }
 
-    function createNewDropmap() {
-      dropmaps.push({ name: 'Neue Dropmap', points: [] });
-      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      localStorage.setItem('editingDropmapIndex', dropmaps.length - 1);
-      window.location.href = 'editor.html';
+    function draw(){
+      canvas.width=900; canvas.height=900;
+      ctx.setTransform(scale,0,0,scale,ox,oy);
+      ctx.clearRect(0,0,900,900);
+      ctx.drawImage(img,0,0,900,900);
+      drawArrow(route[0], route[1]);
+      route.forEach(p=>{
+        ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(p.x,p.y,10,0,2*Math.PI); ctx.fill();
+        ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+      });
+      dropmap.points.forEach(p=>{
+        ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,2*Math.PI); ctx.fill();
+        ctx.strokeStyle='black'; ctx.lineWidth=2; ctx.stroke();
+      });
+      if(bestLine){ const { best, drop } = bestLine;
+        ctx.fillStyle='rgba(0,255,255,0.5)'; ctx.beginPath(); ctx.arc(best.x,best.y,8,0,2*Math.PI); ctx.fill();
+        ctx.strokeStyle='cyan'; ctx.setLineDash([5,5]); ctx.beginPath(); ctx.moveTo(best.x,best.y); ctx.lineTo(drop.x,drop.y); ctx.stroke(); ctx.setLineDash([]);
+      }
     }
 
-    function editDropmap(index) {
-      localStorage.setItem('editingDropmapIndex', index);
-      window.location.href = 'editor.html';
-    }
+    function resetRoute(){ route[0]={x:150,y:150}; route[1]={x:750,y:750}; bestLine=null; draw(); }
 
-    function calculateDrop(index) {
-      localStorage.setItem('editingDropmapIndex', index);
-      window.location.href = 'calculate.html';
+    function calculateDrops(){ if(!dropmap.points.length) return;
+      const dx=route[1].x-route[0].x, dy=route[1].y-route[0].y;
+      const len=Math.hypot(dx,dy), ux=dx/len, uy=dy/len;
+      let bestD=Infinity, best=null, dp=null;
+      dropmap.points.forEach(p=>{
+        const px=p.x-route[0].x, py=p.y-route[0].y;
+        const proj=px*ux+py*uy;
+        const projPt={x:route[0].x+ux*proj, y:route[0].y+uy*proj};
+        const d=Math.hypot(projPt.x-p.x, projPt.y-p.y);
+        if(d<bestD){ bestD=d; best=projPt; dp=p; }
+      });
+      bestLine={best,drop:dp}; draw();
     }
-
-    function showDeletePopup(index) {
-      deleteIndex = index;
-      document.body.classList.add('no-scroll');
-      deleteOverlay.style.display = 'block';
-      deletePopup.style.display = 'flex'; deletePopup.style.opacity = '0';
-      setTimeout(() => deletePopup.style.opacity = '1', 10);
-    }
-
-    function closeDeletePopup(e) {
-      const overlayEl = document.getElementById('deleteOverlay');
-      const popupEl = document.getElementById('deletePopup');
-      popupEl.style.opacity = '0'; overlayEl.style.opacity = '0';
-      setTimeout(() => {
-        popupEl.style.display = 'none';
-        overlayEl.style.display = 'none';
-        document.body.classList.remove('no-scroll');
-      }, 300);
-    }
-
-    function confirmDelete() {
-      dropmaps.splice(deleteIndex, 1);
-      localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
-      closeDeletePopup();
-      renderDropmaps();
-    }
-
-    renderDropmaps();
   </script>
 </body>
 </html>
