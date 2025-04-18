@@ -19,7 +19,15 @@
     h2 { margin-top: 80px; text-align: center; }
     #mapContainer { margin-top: 100px; display: flex; justify-content: center; }
     #mapCanvas { border: 2px solid #333; border-radius: 10px; cursor: grab; max-width: 90vw; height: auto; }
-    .controls { margin: 20px 0; display: flex; gap: 10px; justify-content: center; position: fixed; top: 160px; left: 50%; transform: translateX(-50%); }
+    .controls {
+    position: fixed;
+    top: 120px; /* Direkt unter dem Titel */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
     .controls button { padding: 12px 24px; border-radius: 30px; background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; }
   </style>
 </head>
