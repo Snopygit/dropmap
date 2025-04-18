@@ -4,19 +4,110 @@
   <meta charset="UTF-8">
   <title>Busroute ziehen und Drop berechnen</title>
   <style>
-    body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
-    body.no-scroll { overflow: hidden; }
-    .header { display: flex; align-items: center; gap: 10px; position: absolute; top: 10px; left: 10px; z-index: 1000; }
-    .user-panel { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 8px; background: #222; padding: 5px 10px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.5); z-index: 1000; display: none; }
-    .user-panel img { width: 32px; height: 32px; border-radius: 50%; }
-    .user-panel .name { position: relative; cursor: pointer; }
-    .logout-menu { position: absolute; top: 100%; right: 0; background: #222; padding: 8px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: none; opacity: 0; transition: opacity 0.3s ease; }
-    .logout-menu button { background: #dc3545; border: none; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .user-panel:hover .logout-menu, .logout-menu:hover { display: block; opacity: 1; }
-    canvas { margin-top: 50px; border: 2px solid #333; border-radius: 10px; max-width: 95vw; height: auto; cursor: crosshair; }
-    .controls { display: flex; gap: 10px; margin: 10px; position: fixed; top: 70px; background-color: #111; padding: 10px; border-radius: 10px; z-index: 100; }
-    button { padding: 12px 24px; border-radius: 30px; background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-    .header a { display: flex; align-items: center; text-decoration: none; color: white; }
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+    }
+    .user-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #222;
+      padding: 5px 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: none;
+    }
+    .user-panel img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+    .user-panel .name {
+      position: relative;
+      cursor: pointer;
+    }
+    .logout-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: #222;
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .logout-menu button {
+      background: #dc3545;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .user-panel:hover .logout-menu,
+    .logout-menu:hover {
+      display: block;
+      opacity: 1;
+    }
+    canvas {
+      margin-top: 50px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      max-width: 95vw;
+      height: auto;
+      cursor: crosshair;
+    }
+    .controls {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      background-color: rgba(17,17,17,0.9);
+      padding: 10px;
+      border-radius: 10px;
+      z-index: 1000;
+    }
+    .controls button {
+      padding: 12px 24px;
+      border-radius: 30px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .header a {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      color: white;
+    }
     .header img { margin-right: 6px; }
   </style>
 </head>
@@ -38,7 +129,7 @@
     </div>
   </div>
 
-  <h2 style="margin-top:80px;">Busroute ziehen und Drop berechnen</h2>
+  <h2 style="margin-top:100px;">Busroute ziehen und Drop berechnen</h2>
   <div class="controls">
     <button onclick="calculateDrops()">🎯 FIND BEST DROP</button>
     <button onclick="resetRoute()">🔄 Reset</button>
@@ -67,7 +158,6 @@
 
     // ---- On Load ----
     window.addEventListener('load', async () => {
-      // Ensure user stays logged in
       await fetchUser();
     });
 
@@ -112,8 +202,7 @@
     function drawArrowLine(s,e){ const dx=e.x-s.x, dy=e.y-s.y, len=Math.hypot(dx,dy), steps=Math.floor(len/30), ang=Math.atan2(dy,dx);
       for(let i=0;i<steps;i++){ const x=s.x+dx*(i/steps), y=s.y+dy*(i/steps);
         ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
-        ctx.beginPath(); ctx.moveTo(-5,-5); ctx.lineTo(5,0); ctx.lineTo(-5,5); ctx.closePath(); ctx.fillStyle='#fff'; ctx.fill(); ctx.restore(); }
-    }
+        ctx.beginPath(); ctx.moveTo(-5,-5); ctx.lineTo(5,0); ctx.lineTo(-5,5); ctx.closePath(); ctx.fillStyle='#fff'; ctx.fill(); ctx.restore(); }}
 
     function draw(){ canvas.width=900; canvas.height=900;
       ctx.setTransform(scale,0,0,scale,originX,originY);
