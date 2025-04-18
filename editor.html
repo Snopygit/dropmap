@@ -21,6 +21,13 @@
     .popup input { padding: 10px; font-size: 16px; margin: 10px 0; border-radius: 10px; border: none; background-color: #444; color: white; }
     .save-button { background: #007bff; border: none; color: white; padding: 8px 16px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; }
     .close-btn { position: absolute; top: 8px; right: 10px; background: transparent; color: white; border: none; font-size: 18px; cursor: pointer; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    /* User Panel Styles */
+    .user-panel { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 8px; background: #222; padding: 5px 10px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.5); z-index: 1001; display: none; }
+    .user-panel img { width: 32px; height: 32px; border-radius: 50%; }
+    .user-panel .name { position: relative; cursor: pointer; }
+    .logout-menu { position: absolute; top: 100%; right: 0; background: #222; padding: 8px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: none; opacity: 0; transition: opacity 0.3s ease; }
+    .logout-menu button { background: #dc3545; border: none; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .user-panel:hover .logout-menu, .logout-menu:hover { display: block; opacity: 1; }
   </style>
 </head>
 <body>
@@ -31,6 +38,16 @@
       <h1 style="margin:0;font-size:24px;">Home</h1>
     </a>
   </div>
+
+  <!-- User Panel -->
+  <div class="user-panel" id="userPanel">
+    <img id="userAvatar" src="" alt="Avatar">
+    <div class="name" id="userName"></div>
+    <div class="logout-menu" id="logoutMenu">
+      <button onclick="logout()">🚪 Logout</button>
+    </div>
+  </div>
+
   <h2>Dropmap bearbeiten</h2>
   <div class="controls">
     <button onclick="showPopup()">💾 Dropmap speichern</button>
@@ -55,6 +72,30 @@
     <button class="save-button" onclick="saveDropmapName()">Speichern</button>
   </div>
   <script>
+    // ---- Token & User Fetch ----
+    async function fetchUser() {
+      const token = localStorage.getItem('discord_token');
+      if (!token) return;
+      try {
+        const res = await fetch('https://discord.com/api/users/@me', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) throw new Error();
+        const user = await res.json();
+        document.getElementById('userAvatar').src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
+        document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
+        document.getElementById('userPanel').style.display = 'flex';
+      } catch {
+        localStorage.removeItem('discord_token');
+        showLogin();
+      }
+    }
+    function logout() { localStorage.removeItem('discord_token'); window.location = 'index.html'; }
+
+    // ---- Login Logic ----
+    function showLogin() { /* reuse existing index login popup if needed */ }
+    // On load, fetch user
+    window.addEventListener('load', async () => { await fetchUser(); });
+
+    // Existing map/editor code follows...
     const canvas = document.getElementById('mapCanvas'), ctx = canvas.getContext('2d');
     const mapContainer = document.getElementById('mapContainer');
     const markerIcon = document.getElementById('markerIcon');
@@ -63,7 +104,6 @@
     let dropmaps = JSON.parse(localStorage.getItem('dropmaps')||'[]');
     const editingIndex = +localStorage.getItem('editingDropmapIndex');
     let dropmap = dropmaps[editingIndex]||{points:[]}; dropmap.points=dropmap.points||[];
-
     const img=new Image(); img.src='fortnite-dropmap/assets/map.png';
     let scale=1, ox=0, oy=0, dragStart=null, dragging=false;
     img.onload=draw;
@@ -71,43 +111,23 @@
     canvas.addEventListener('mousemove',e=>{ if(dragStart){ const dx=e.clientX-dragStart.x, dy=e.clientY-dragStart.y; if(!dragging&&Math.hypot(dx,dy)>5) dragging=true; if(dragging){ox+=dx; oy+=dy; dragStart={x:e.clientX,y:e.clientY}; draw(); updateMarkers(); updateContextMenu(); } } });
     canvas.addEventListener('mouseup',()=>dragStart=null);
     canvas.addEventListener('wheel',e=>{e.preventDefault(); const d=e.deltaY>0?-0.1:0.1; const mx=(e.offsetX-ox)/scale,my=(e.offsetY-oy)/scale; scale=Math.min(Math.max(0.5,scale+d),3); ox=e.offsetX-mx*scale; oy=e.offsetY-my*scale; draw(); updateMarkers(); updateContextMenu(); });
-
     function draw(){ canvas.width=900; canvas.height=900; ctx.setTransform(scale,0,0,scale,ox,oy); ctx.clearRect(0,0,900,900); ctx.drawImage(img,0,0,900,900); }
-
     function updateMarkers(){ document.querySelectorAll('.marker').forEach((el,i)=>{ const p=dropmap.points[i]; el.style.left=(ox+p.x*scale)+'px'; el.style.top=(oy+p.y*scale)+'px'; }); }
-
-    function updateContextMenu() {
-      if (contextMenu.style.display === 'block' && editingEl) {
-        const containerRect = mapContainer.getBoundingClientRect();
-        const markerRect = editingEl.getBoundingClientRect();
-        const menuRect = contextMenu.getBoundingClientRect();
-        const left = markerRect.left + markerRect.width/2 - menuRect.width/2 - containerRect.left;
-        const top = markerRect.top - menuRect.height - 8 - containerRect.top;
-        contextMenu.style.left = `${left}px`;
-        contextMenu.style.top = `${top}px`;
-      }
-    }
-
-    // Drag & drop handlers
+    function updateContextMenu(){ if(contextMenu.style.display==='block'&&editingEl){ const containerRect=mapContainer.getBoundingClientRect(); const markerRect=editingEl.getBoundingClientRect(); const menuRect=contextMenu.getBoundingClientRect(); const left=markerRect.left+markerRect.width/2-menuRect.width/2-containerRect.left; const top=markerRect.top-menuRect.height-8-containerRect.top; contextMenu.style.left=`${left}px`; contextMenu.style.top=`${top}px`; }}
     markerIcon.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain','newMarker'));
-    mapContainer.addEventListener('dragstart',e=>{ if(e.target.classList.contains('marker') && e.target.draggable){ const idx=e.target.dataset.idx; e.dataTransfer.setData('text/plain','edit:'+idx);} });
+    mapContainer.addEventListener('dragstart',e=>{ if(e.target.classList.contains('marker')&&e.target.draggable){ const idx=e.target.dataset.idx; e.dataTransfer.setData('text/plain','edit:'+idx);} });
     mapContainer.addEventListener('dragover',e=>e.preventDefault());
     mapContainer.addEventListener('drop',e=>{ e.preventDefault(); const data=e.dataTransfer.getData('text/plain'); const rect=canvas.getBoundingClientRect(), x=e.clientX-rect.left, y=e.clientY-rect.top; if(data==='newMarker'){ addMarker(x,y);} else if(data.startsWith('edit:')){ const idx=+data.split(':')[1]; const mx=(x-ox)/scale,my=(y-oy)/scale; dropmap.points[idx]={x:mx,y:my}; updateMarkers(); updateContextMenu(); } });
-
     function addMarker(x,y){ const mx=(x-ox)/scale,my=(y-oy)/scale; dropmap.points.push({x:mx,y:my}); renderMarker(dropmap.points.length-1); }
     function renderMarker(idx){ const el=document.createElement('div'); el.className='marker'; el.dataset.idx=idx; el.draggable=false; el.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain','edit:'+idx)); el.addEventListener('click',e=>{ e.stopPropagation(); showContextMenu(e.clientX,e.clientY,el); }); mapContainer.appendChild(el); updateMarkers(); }
     dropmap.points.forEach((_,i)=>renderMarker(i));
-
     let editingEl=null;
     function showContextMenu(cx,cy,el){ editingEl=el; updateContextMenu(); contextMenu.style.display='block'; }
-    document.body.addEventListener('click',e=>{ if(contextMenu.style.display==='block' && !contextMenu.contains(e.target)){ contextMenu.style.display='none'; }});
-
+    document.body.addEventListener('click',e=>{ if(contextMenu.style.display==='block'&&!contextMenu.contains(e.target)){ contextMenu.style.display='none'; }});
     function enableEdit(){ contextMenu.style.display='none'; editingEl.draggable=true; updateContextMenu(); }
     function deleteMarker(){ const i=+editingEl.dataset.idx; dropmap.points.splice(i,1); mapContainer.removeChild(editingEl); document.querySelectorAll('.marker').forEach((m,idx)=>m.dataset.idx=idx); updateMarkers(); contextMenu.style.display='none'; }
-
     function undo(){}
     function redo(){}
-
     function showPopup(){ document.body.classList.add('no-scroll'); overlay.style.display='block'; popup.style.display='flex'; popup.style.opacity='0'; setTimeout(()=>popup.style.opacity='1',10);}    
     function hidePopup(e){ if(e.target===overlay) closePopup(); }
     function closePopup(){ popup.style.opacity='0'; overlay.style.opacity='0'; setTimeout(()=>{popup.style.display='none';overlay.style.display='none';document.body.classList.remove('no-scroll');},300); }
