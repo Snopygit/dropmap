@@ -101,10 +101,13 @@
     // User-Block
     document.addEventListener('DOMContentLoaded', () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.username && user.avatarUrl) {
-        document.getElementById('userName').textContent = user.username + '#' + user.discriminator;
-        document.getElementById('userAvatar').src = user.avatarUrl;
+      if (!user.username) {
+        // redirect to login if no user
+        window.location.href = 'index.html';
+        return;
       }
+      document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
+      document.getElementById('userAvatar').src = user.avatarUrl;
       const ub = document.getElementById('userBlock');
       const lm = document.getElementById('logoutMenu');
       ub.addEventListener('mouseenter', () => lm.style.display = 'block');
