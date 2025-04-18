@@ -17,52 +17,42 @@
     #userBlock {
       position: fixed; top: 10px; right: 20px;
       display: flex; align-items: center; gap: 8px;
-      cursor: pointer;
       z-index: 1000;
     }
     #userBlock img { width: 32px; height: 32px; border-radius: 50%; }
+    #userBlock .username { font-size: 16px; }
     #logoutMenu {
       position: absolute; top: 110%; right: 0;
       background: #222; border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      display: none;
-      opacity: 0;
-      transition: opacity 0.3s ease;
+      display: none; opacity: 0; transition: opacity 0.3s ease;
     }
     #userBlock:hover #logoutMenu, #logoutMenu:hover {
-      display: block;
-      opacity: 1;
+      display: block; opacity: 1;
     }
     #logoutMenu button {
       background: #dc3545; color: white;
       border: none; padding: 8px 12px; border-radius: 4px;
-      width: 100%; cursor: pointer;
+      cursor: pointer;
     }
 
     /* Map Container */
     #mapContainer {
       margin-top: 80px;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      overflow: hidden;
-      cursor: grab;
-      padding: 0 20px;
+      width: 100%; display: flex;
+      justify-content: center; overflow: hidden;
+      cursor: grab; padding: 0 20px;
       box-sizing: border-box;
     }
     #mapCanvas {
-      display: block;
-      width: 100%;
-      height: auto;
-      max-width: 900px;
-      border: 2px solid #333;
+      display: block; width: 100%; height: auto;
+      max-width: 900px; border: 2px solid #333;
       border-radius: 10px;
     }
     /* Controls under map */
     .controls {
       display: flex; gap: 10px;
-      justify-content: center;
-      margin: 20px 0;
+      justify-content: center; margin: 20px 0;
     }
     .controls button {
       padding: 10px 20px; border: none;
@@ -79,9 +69,10 @@
       <span class="home-text">Home</span>
     </a>
   </div>
+
   <div id="userBlock">
     <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
-    <span id="userName">Gast</span>
+    <span class="username" id="userName">Gast</span>
     <div id="logoutMenu">
       <button onclick="logout()">🚪 Log out</button>
     </div>
@@ -100,7 +91,7 @@
     // User-Block Logic
     document.addEventListener('DOMContentLoaded', () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.username && user.avatarUrl) {
+      if (user.id && user.username && user.avatarUrl) {
         document.getElementById('userName').textContent = user.username + '#' + user.discriminator;
         document.getElementById('userAvatar').src = user.avatarUrl;
       }
@@ -220,11 +211,6 @@
       });
       bestLine = { best, drop: dropPt };
       draw();
-    }
-
-    function logout() {
-      localStorage.removeItem('user');
-      window.location.href = 'index.html';
     }
   </script>
 </body>
