@@ -14,7 +14,7 @@
     }
     body.no-scroll { overflow: hidden; }
 
-    /* Header mit Home-Link und User-Block */
+    /* Header */
     .header {
       position: fixed;
       top: 0;
@@ -46,16 +46,13 @@
       cursor: pointer;
     }
     #userAvatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
+      width: 32px; height: 32px;
+      border-radius: 50%; object-fit: cover;
     }
     #userName { font-size: 16px; }
     #logoutMenu {
       position: absolute;
-      top: 120%;
-      right: 0;
+      top: 120%; right: 0;
       display: none;
       background: #222;
       border-radius: 8px;
@@ -63,23 +60,16 @@
       z-index: 1001;
     }
     #logoutMenu button {
-      display: block;
-      width: 100%;
-      background: #dc3545;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      font-size: 14px;
-      cursor: pointer;
+      width: 100%; padding: 8px 12px;
+      background: #dc3545; color: white;
+      border: none; font-size: 14px; cursor: pointer;
       border-radius: 4px;
     }
 
-    /* Canvas-Bereich */
+    /* Karte & Controls */
     #mapContainer {
       margin-top: 80px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: flex; flex-direction: column; align-items: center;
     }
     canvas {
       border: 2px solid #333;
@@ -88,8 +78,6 @@
       height: auto;
       cursor: grab;
     }
-
-    /* Steuer-Buttons unter der Karte */
     .controls {
       display: flex;
       gap: 10px;
@@ -109,25 +97,19 @@
 
     /* Popups */
     .overlay {
-      position: fixed;
-      top: 0; left: 0;
+      position: fixed; top: 0; left: 0;
       width: 100vw; height: 100vh;
       background: rgba(0,0,0,0.7);
-      display: none;
-      z-index: 999;
+      display: none; z-index: 999;
     }
     .popup {
       position: fixed;
       top: 50%; left: 50%; transform: translate(-50%,-50%);
-      background: #222;
-      padding: 20px;
+      background: #222; padding: 20px;
       border-radius: 20px;
       box-shadow: 0 0 20px 5px yellow;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      z-index: 1000;
-      transition: opacity 0.3s ease;
+      display: none; flex-direction: column; align-items: center;
+      z-index: 1000; transition: opacity 0.3s ease;
     }
     .popup input {
       padding: 10px; font-size: 16px;
@@ -191,10 +173,7 @@
       ub.addEventListener('mouseenter', ()=> menu.style.display='block');
       ub.addEventListener('mouseleave', ()=> menu.style.display='none');
     });
-    function logout() {
-      localStorage.removeItem('user');
-      window.location.href = 'index.html';
-    }
+    function logout() { localStorage.removeItem('user'); window.location.href='index.html'; }
 
     // Canvas & Map
     const canvas = document.getElementById('mapCanvas'), ctx = canvas.getContext('2d');
@@ -204,41 +183,28 @@
     const idx = +localStorage.getItem('editingDropmapIndex');
     let dropmap = dropmaps[idx]||{points:[]}; dropmap.points = dropmap.points||[];
 
-    let scale=1, ox=0, oy=0, drag=null, start=null, offx, offy, best=null;
-    img.onload = () => draw();
+    let scale=1, ox=0, oy=0, dragging=null, start=null, offx, offy, bestLine=null;
+    img.onload = draw;
 
-    canvas.addEventListener('wheel', e => {
-      e.preventDefault();
-      const d = e.deltaY>0?-0.1:0.1;
-      const mx=(e.offsetX-ox)/scale, my=(e.offsetY-oy)/scale;
-      scale=Math.min(Math.max(0.5,scale+d),3);
-      ox=e.offsetX-mx*scale; oy=e.offsetY-my*scale;
-      draw();
-    });
-    canvas.addEventListener('mousedown', e => { drag='map'; offx=e.clientX-ox; offy=e.clientY-oy; });
-    canvas.addEventListener('mousemove', e => {
-      if (drag!=='map') return;
-      ox=e.clientX-offx; oy=e.clientY-offy; draw();
-    });
-    canvas.addEventListener('mouseup', ()=> drag=null);
+    canvas.addEventListener('wheel',e=>{ e.preventDefault(); const d=e.deltaY>0?-0.1:0.1; const mx=(e.offsetX-ox)/scale, my=(e.offsetY-oy)/scale; scale=Math.min(Math.max(0.5,scale+d),3); ox=e.offsetX-mx*scale; oy=e.offsetY-my*scale; draw(); });
+    canvas.addEventListener('mousedown',e=>{ dragging='map'; offx=e.clientX-ox; offy=e.clientY-oy; });
+    canvas.addEventListener('mousemove',e=>{ if(dragging!=='map') return; ox=e.clientX-offx; oy=e.clientY-offy; draw(); });
+    canvas.addEventListener('mouseup',()=>{ dragging=null; });
 
     function draw() {
       canvas.width=900; canvas.height=900;
       ctx.setTransform(scale,0,0,scale,ox,oy);
       ctx.clearRect(0,0,900,900);
       ctx.drawImage(img,0,0,900,900);
-      dropmap.points.forEach(p=>{
-        ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,2*Math.PI); ctx.fill();
-        ctx.strokeStyle='black'; ctx.lineWidth=2; ctx.stroke();
-      });
+      // hier können Route- und Punkte-Zeichnungen ergänzt werden
     }
 
     function calculateDrops() { /* ... */ }
-    function resetRoute(){ /* ... */ }
-    function showPopup(){ /* ... */ }
-    function hidePopup(){ /* ... */ }
-    function closePopup(){ /* ... */ }
-    function saveDropmapName(){ /* ... */ }
+    function resetRoute() { /* ... */ }
+    function showPopup() { /* ... */ }
+    function hidePopup() { /* ... */ }
+    function closePopup() { /* ... */ }
+    function saveDropmapName() { /* ... */ }
   </script>
 </body>
 </html>
