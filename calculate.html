@@ -103,6 +103,7 @@
   </style>
 </head>
 <body>
+  <!-- Home-Link -->
   <div class="header">
     <a href="index.html" style="display:flex;align-items:center;text-decoration:none;color:white;">
       <img src="assets/dropmap.png" alt="Dropmap" width="32" height="32">
@@ -110,6 +111,7 @@
     </a>
   </div>
 
+  <!-- User Info -->
   <div class="user-info" id="userInfo">
     <img src="assets/discord.png" id="userAvatar" alt="Avatar">
     <span id="userName">Gast</span>
@@ -118,11 +120,13 @@
     </div>
   </div>
 
+  <!-- Controls -->
   <div class="controls">
     <button id="calcBtn" onclick="calculateDrops()">🎯 FIND BEST DROP</button>
     <button id="resetBtn" onclick="resetRoute()">🔄 Reset</button>
   </div>
 
+  <!-- Map Container -->
   <div id="mapContainer">
     <canvas id="mapCanvas" width="900" height="900"></canvas>
   </div>
@@ -140,16 +144,16 @@
     const dd = document.getElementById('userDropdown');
     ui.addEventListener('mouseenter', () => dd.style.display = 'flex');
     ui.addEventListener('mouseleave', () => dd.style.display = 'none');
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('user');
-      window.location.href = 'index.html';
-    });
+    document.getElementById('logoutBtn')
+      .addEventListener('click', () => {
+        localStorage.removeItem('user');
+        window.location.href = 'index.html';
+      });
 
     // --- Canvas & Map ---
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.src = 'assets/map.png';
+    const img = new Image(); img.src = 'assets/map.png';
     img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden.');
 
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
@@ -161,94 +165,89 @@
     const route = [{ x: 150, y: 150 }, { x: 750, y: 750 }];
     let bestLine = null;
 
-    function draw() {
-      canvas.width = 900; canvas.height = 900;
-      ctx.setTransform(scale, 0, 0, scale, ox, oy);
-      ctx.clearRect(0, 0, 900, 900);
-      ctx.drawImage(img, 0, 0, 900, 900);
-      // route arrows
-      drawArrow(route[0], route[1]);
-      // route points
-      route.forEach(p => {
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, 2*Math.PI); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-      });
-      // drops
-      dropmap.points.forEach(p => {
-        ctx.fillStyle = 'yellow';
-        ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 2*Math.PI); ctx.fill();
-        ctx.strokeStyle = 'black'; ctx.lineWidth = 2; ctx.stroke();
-      });
-      // best drop
-      if (bestLine) {
-        const { best, drop } = bestLine;
-        ctx.fillStyle = 'cyan'; ctx.beginPath(); ctx.arc(best.x, best.y, 8, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
-        ctx.strokeStyle = 'cyan'; ctx.setLineDash([5,5]); ctx.beginPath(); ctx.moveTo(best.x, best.y); ctx.lineTo(drop.x, drop.y); ctx.stroke(); ctx.setLineDash([]);
-      }
-    }
-
-    function drawArrow(a, b) {
-      const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
-      const steps = Math.floor(len / 30), ang = Math.atan2(dy, dx);
-      for (let i=0; i<steps; i++) {
-        const x = a.x + dx*(i/steps), y = a.y + dy*(i/steps);
-        ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
-        ctx.beginPath(); ctx.moveTo(-5,-5); ctx.lineTo(5,0); ctx.lineTo(-5,5); ctx.closePath();
-        ctx.fillStyle = '#fff'; ctx.fill(); ctx.restore();
-      }
-    }
-
     img.onload = draw;
 
-    // pan & zoom
+    function draw() {
+      canvas.width = 900; canvas.height = 900;
+      ctx.setTransform(scale,0,0,scale,ox,oy);
+      ctx.clearRect(0,0,900,900);
+      ctx.drawImage(img,0,0,900,900);
+      // Arrows
+      drawArrow(route[0],route[1]);
+      // Route points
+      route.forEach(p => {
+        ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(p.x,p.y,10,0,2*Math.PI); ctx.fill();
+        ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+      });
+      // Drops
+      dropmap.points.forEach(p => {
+        ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,2*Math.PI); ctx.fill();
+        ctx.strokeStyle='black'; ctx.lineWidth=2; ctx.stroke();
+      });
+      // Best Drop
+      if(bestLine){
+        const { best, drop } = bestLine;
+        ctx.fillStyle='cyan'; ctx.beginPath(); ctx.arc(best.x,best.y,8,0,2*Math.PI); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle='cyan'; ctx.setLineDash([5,5]);
+        ctx.beginPath(); ctx.moveTo(best.x,best.y); ctx.lineTo(drop.x,drop.y); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    function drawArrow(a,b){
+      const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy);
+      const steps=Math.floor(len/30), ang=Math.atan2(dy,dx);
+      for(let i=0;i<steps;i++){
+        const x=a.x+dx*(i/steps), y=a.y+dy*(i/steps);
+        ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+        ctx.beginPath(); ctx.moveTo(-5,-5); ctx.lineTo(5,0); ctx.lineTo(-5,5); ctx.closePath(); ctx.fillStyle='#fff'; ctx.fill(); ctx.restore();
+      }
+    }
+
+    // Pan & Zoom
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
-      const delta = e.deltaY>0 ? -0.1 : 0.1;
-      const mx = (e.offsetX - ox)/scale, my = (e.offsetY - oy)/scale;
-      scale = Math.min(Math.max(0.5, scale+delta), 3);
-      ox = e.offsetX - mx*scale; oy = e.offsetY - my*scale;
+      const delta=e.deltaY>0?-0.1:0.1;
+      const mx=(e.offsetX-ox)/scale, my=(e.offsetY-oy)/scale;
+      scale=Math.min(Math.max(0.5,scale+delta),3);
+      ox=e.offsetX-mx*scale; oy=e.offsetY-my*scale;
       draw();
     });
-
     canvas.addEventListener('mousedown', e => {
-      const x = (e.offsetX - ox)/scale, y = (e.offsetY - oy)/scale;
-      dragging = 'map'; offsetX = e.clientX - ox; offsetY = e.clientY - oy;
-      route.forEach((p,i) => {
-        if (Math.hypot(p.x - x, p.y - y) < 12) {
-          dragging = i; offsetX = p.x - x; offsetY = p.y - y;
-        }
+      const x=(e.offsetX-ox)/scale, y=(e.offsetY-oy)/scale;
+      dragging='map'; offsetX=e.clientX-ox; offsetY=e.clientY-oy;
+      route.forEach((p,i)=>{
+        if(Math.hypot(p.x-x,p.y-y)<12){ dragging=i; offsetX=p.x-x; offsetY=p.y-y; }
       });
     });
     canvas.addEventListener('mousemove', e => {
-      if (dragging===null) return;
-      if (dragging === 'map') {
-        ox = e.clientX - offsetX; oy = e.clientY - offsetY;
-      } else {
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX-rect.left-ox)/scale;
-        const y = (e.clientY-rect.top-oy)/scale;
-        route[dragging] = { x: x+offsetX, y: y+offsetY };
+      if(dragging===null) return;
+      if(dragging==='map'){ ox=e.clientX-offsetX; oy=e.clientY-offsetY; }
+      else {
+        const rect=canvas.getBoundingClientRect();
+        const x=(e.clientX-rect.left-ox)/scale;
+        const y=(e.clientY-rect.top-oy)/scale;
+        route[dragging]={x:x+offsetX, y:y+offsetY};
       }
       draw();
     });
-    canvas.addEventListener('mouseup', () => dragging = null);
+    canvas.addEventListener('mouseup', ()=>dragging=null);
 
-    // controls
-    function resetRoute() { route[0]={x:150,y:150}; route[1]={x:750,y:750}; bestLine=null; draw(); }
-    function calculateDrops() {
-      if (!dropmap.points.length) { alert('Keine Drops vorhanden.'); return; }
-      const dx = route[1].x - route[0].x, dy = route[1].y - route[0].y;
-      const len = Math.hypot(dx, dy), ux = dx/len, uy = dy/len;
-      let bestDist = Infinity, bestPt=null, bestDrop=null;
-      dropmap.points.forEach(p => {
+    // Controls
+    function resetRoute(){ route[0]={x:150,y:150}; route[1]={x:750,y:750}; bestLine=null; draw(); }
+    function calculateDrops(){
+      if(!dropmap.points.length){ alert('Keine Drops vorhanden.'); return; }
+      const dx=route[1].x-route[0].x, dy=route[1].y-route[0].y;
+      const len=Math.hypot(dx,dy), ux=dx/len, uy=dy/len;
+      let bestDist=Infinity, bestPt=null, bestDrop=null;
+      dropmap.points.forEach(p=>{
         const px=p.x-route[0].x, py=p.y-route[0].y;
-        const proj = px*ux + py*uy;
-        const projPt = { x:route[0].x + ux*proj, y:route[0].y + uy*proj };
-        const d = Math.hypot(projPt.x-p.x, projPt.y-p.y);
-        if (d < bestDist) { bestDist=d; bestPt=projPt; bestDrop=p; }
+        const proj=px*ux+py*uy;
+        const projPt={x:route[0].x+ux*proj, y:route[0].y+uy*proj};
+        const d=Math.hypot(projPt.x-p.x, projPt.y-p.y);
+        if(d<bestDist){ bestDist=d; bestPt=projPt; bestDrop=p; }
       });
-      if (bestPt) { bestLine={best:bestPt, drop:bestDrop}; draw(); }
+      if(bestPt){ bestLine={best:bestPt, drop:bestDrop}; draw(); }
     }
   </script>
 </body>
