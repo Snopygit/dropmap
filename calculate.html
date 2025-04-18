@@ -57,35 +57,48 @@
   </div>
 
   <script>
-    // --- Discord-User laden ---
+    // --- Discord-User laden & Whitelist prüfen ---
+    const WHITELIST = [
+      '1221451449695735884',
+      '644602114256928789',
+      '868581285277347920'
+    ];
     async function fetchUser() {
       const token = localStorage.getItem('discord_token');
-      if (!token) return;
+      if (!token) {
+        window.location.href = 'index.html';
+        return;
+      }
       try {
         const res = await fetch('https://discord.com/api/users/@me', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         if (!res.ok) throw new Error();
         const user = await res.json();
+        // Whitelist check
+        if (!WHITELIST.includes(user.id)) {
+          alert('Zugriff verweigert. Du bist nicht authorisiert.');
+          localStorage.removeItem('discord_token');
+          window.location.href = 'index.html';
+          return;
+        }
         document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
         document.getElementById('userAvatar').src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
       } catch {
         localStorage.removeItem('discord_token');
+        window.location.href = 'index.html';
       }
     }
     function logout() {
       localStorage.removeItem('discord_token');
       window.location.href = 'index.html';
     }
-    window.addEventListener('load', () => {
-      fetchUser();
-    });
+    window.addEventListener('load', fetchUser);
 
     // --- Canvas & Map Logic ---
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.src = 'fortnite-dropmap/assets/map.png';
+    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png';
     img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden.');
 
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
@@ -93,10 +106,7 @@
     const dropmap = dropmaps[editingIndex] || { points: [] };
 
     const route = [ { x: 150, y: 150 }, { x: 750, y: 750 } ];
-    let scale = 1, ox = 0, oy = 0;
-    let dragStart = null, dragging = null, offX = 0, offY = 0;
-    let bestLine = null;
-
+    let scale = 1, ox = 0, oy = 0, dragStart = null, dragging = null, offX = 0, offY = 0, bestLine = null;
     img.onload = draw;
 
     canvas.addEventListener('wheel', e => {
