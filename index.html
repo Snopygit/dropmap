@@ -9,13 +9,20 @@
     .header { display: flex; align-items: center; gap: 20px; position: absolute; top: 10px; left: 10px; z-index: 1000; }
     .user-panel { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 8px; background: #222; padding: 5px 10px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.5); z-index: 1000; }
     .user-panel img { width: 32px; height: 32px; border-radius: 50%; }
+    .user-panel .name { position: relative; cursor: pointer; }
+    .logout-menu { position: absolute; top: 100%; right: 0; background: #222; padding: 8px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: none; opacity: 0; transition: opacity 0.3s ease; }
+    .logout-menu button { background: #dc3545; border: none; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .user-panel .name:hover + .logout-menu,
+    .logout-menu:hover { display: block; opacity: 1; }
     .dropmap-list { margin-top: 80px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
     .dropmap-card { background: #222; border-radius: 10px; padding: 10px; text-align: center; width: 200px; }
     .dropmap-card img { width: 100%; border-radius: 8px; margin-bottom: 8px; }
     .dropmap-card p { margin: 0 0 10px; }
-    .dropmap-card button { margin: 5px 0; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-    button.primary { margin-top: 20px; padding: 10px 20px; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .delete-button { background: #dc3545; color: white; }
+    .dropmap-card button { margin: 5px 0; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; }
+    .dropmap-card button.primary-action { background: #007bff; }
+    .dropmap-card button.calculate-action { background: #007bff; }
+    .dropmap-card button.delete-button { background: #dc3545; }
+    button.create-new { margin-top: 20px; padding: 10px 20px; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; }
     .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: none; z-index: 999; }
     .login-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2C2F33; padding: 30px 20px 20px; border-radius: 10px; box-shadow: 0 0 20px 5px #7289DA; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
     .login-popup img { width: 64px; height: 64px; margin-bottom: 16px; }
@@ -38,12 +45,15 @@
   <!-- User Info Panel -->
   <div class="user-panel" id="userPanel" style="display:none;">
     <img id="userAvatar" src="" alt="Avatar">
-    <span id="userName"></span>
+    <div class="name" id="userName"></div>
+    <div class="logout-menu" id="logoutMenu">
+      <button onclick="logout()">🚪 Logout</button>
+    </div>
   </div>
 
   <!-- Dropmap List -->
   <div class="dropmap-list" id="dropmapList"></div>
-  <button class="primary" onclick="createNewDropmap()">➕ Neue Dropmap</button>
+  <button class="create-new" onclick="createNewDropmap()">➕ Neue Dropmap</button>
 
   <!-- Login Popup -->
   <div class="overlay" id="loginOverlay"></div>
@@ -74,15 +84,20 @@
         const user = await res.json();
         const panel = document.getElementById('userPanel');
         const avatar = document.getElementById('userAvatar');
-        const name = document.getElementById('userName');
+        const nameEl = document.getElementById('userName');
         avatar.src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
-        name.textContent = `${user.username}#${user.discriminator}`;
+        nameEl.textContent = `${user.username}#${user.discriminator}`;
         panel.style.display = 'flex';
       } catch {
-        // invalid token, force login again
         localStorage.removeItem('discord_token');
         showLogin();
       }
+    }
+
+    // ---- Logout ----
+    function logout() {
+      localStorage.removeItem('discord_token');
+      window.location.reload();
     }
 
     // ---- Login Logic (Implicit Grant) ----
@@ -137,8 +152,8 @@
         card.innerHTML = `
           <img src="assets/map.png" alt="Vorschau">
           <p>${map.name || 'Unbenannt'}</p>
-          <button onclick="editDropmap(${idx})">🖊️ Bearbeiten</button>
-          <button onclick="calculateDrop(${idx})">🎯 Calculate Drop</button>
+          <button class="primary-action" onclick="editDropmap(${idx})">🖊️ Bearbeiten</button>
+          <button class="calculate-action" onclick="calculateDrop(${idx})">🎯 Calculate Drop</button>
           <button class="delete-button" onclick="showDelete(${idx})">🗑️ Löschen</button>
         `;
         container.appendChild(card);
