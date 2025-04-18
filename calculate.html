@@ -71,13 +71,13 @@
   <!-- Home Link -->
   <div class="header">
     <a href="index.html" style="display:flex;align-items:center;text-decoration:none;color:white;">
-      <img class="logo" src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap">
+      <img class="logo" src="assets/dropmap.png" alt="Dropmap">
       <span class="home-text">Home</span>
     </a>
   </div>
   <!-- User Block -->
   <div id="userBlock">
-    <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
+    <img id="userAvatar" src="assets/discord.png" alt="Avatar">
     <span id="userName">Gast</span>
     <div id="logoutMenu">
       <button onclick="logout()">Log out</button>
@@ -89,8 +89,8 @@
     <canvas id="mapCanvas" width="900" height="900"></canvas>
   </div>
   <div class="controls">
-    <button onclick="calculateDrops()">🎯 Calculate Drop</button>
-    <button onclick="resetRoute()">🔄 Reset</button>
+    <button onclick="calculateDrops()">🎯 Calculate Drop</button>
+    <button onclick="resetRoute()">🔄 Reset</button>
   </div>
 
   <script>
@@ -109,12 +109,10 @@
       window.location.href = 'index.html';
     }
 
-    // Canvas & Map Logic
+    // Canvas & Map Logic (unchanged)
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.src = 'fortnite-dropmap/assets/map.png';
-    img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden');
+    const img = new Image(); img.src = 'assets/map.png'; img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden');
 
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const idx = +localStorage.getItem('editingDropmapIndex');
