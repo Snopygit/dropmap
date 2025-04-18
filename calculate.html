@@ -19,10 +19,11 @@
       justify-content: space-between;
       align-items: center;
       width: 100%;
-      position: absolute;
-      top: 10px;
+      position: fixed;
+      top: 0;
       left: 0;
-      padding: 0 20px;
+      padding: 10px 20px;
+      background: #111;
       z-index: 1000;
     }
     .header-left, .header-right {
@@ -30,24 +31,31 @@
       align-items: center;
       gap: 12px;
     }
-    .header-right {
-      position: relative;
-      cursor: pointer;
-    }
-    .header-left img,
-    .header-right img {
+    .header-left a img {
       width: 32px;
       height: 32px;
       border-radius: 4px;
     }
-    .header-left span,
+    .header-left span {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .header-right {
+      position: relative;
+      cursor: pointer;
+    }
+    .header-right img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
     .header-right span {
       font-size: 16px;
       font-weight: bold;
     }
     .dropdown {
       position: absolute;
-      top: 110%;
+      top: 120%;
       right: 0;
       background: #222;
       border-radius: 8px;
@@ -73,7 +81,7 @@
     }
     .controls {
       position: fixed;
-      top: 60px;
+      top: 70px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -98,7 +106,7 @@
       gap: 6px;
     }
     canvas {
-      margin-top: 120px;
+      margin-top: 140px;
       border: 2px solid #333;
       border-radius: 10px;
       max-width: 95vw;
@@ -111,12 +119,12 @@
   <div class="header">
     <div class="header-left">
       <a href="index.html" style="display:flex; align-items:center; text-decoration:none; color:white; gap:8px;">
-        <img src="./assets/dropmap.png" alt="Dropmap">
+        <img src="assets/dropmap.png" alt="Dropmap">
         <span>Home</span>
       </a>
     </div>
     <div class="header-right" id="userMenu">
-      <img id="avatar" src="./assets/discord.png" alt="Avatar">
+      <img id="avatar" src="assets/discord.png" alt="Avatar">
       <span id="username">Gast</span>
       <div class="dropdown" id="userDropdown">
         <button id="logoutBtn">Log out</button>
@@ -144,7 +152,7 @@
       avatar.src = user.avatar;
       usernameField.textContent = user.name;
     } else {
-      avatar.src = './assets/discord.png';
+      avatar.src = 'assets/discord.png';
       usernameField.textContent = 'Gast';
     }
     userMenu.addEventListener('mouseenter', () => {
@@ -164,9 +172,9 @@
     // --- Map & Route ---
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
-    const img = new Image(); img.src = './assets/map.png';
+    const img = new Image(); img.src = 'assets/map.png';
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
-    const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));  
+    const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));
     const dropmap = dropmaps[editingIndex];
     if (!dropmap || !dropmap.points) { alert("Keine gültige Dropmap gefunden."); window.location.href = 'index.html'; }
 
