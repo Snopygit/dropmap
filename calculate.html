@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Busroute ziehen und Drop berechnen</title>
   <style>
     body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow-x: hidden; }
@@ -11,7 +11,7 @@
     .header img.logo { width: 32px; height: 32px; border-radius: 4px; }
     .header .home-text { margin-left: 8px; font-weight: bold; font-size: 18px; }
     /* User Block */
-    #userBlock { display: flex; align-items: center; gap: 8px; position: relative; cursor: pointer; }
+    #userBlock { display: flex; align-items: center; gap: 8px; background: #222; padding: 4px 8px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.5); cursor: pointer; position: relative; }
     #userBlock img { width: 32px; height: 32px; border-radius: 50%; }
     #userBlock .name { font-size: 16px; }
     #logoutMenu { position: absolute; top: 110%; right: 0; background: #222; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: none; }
@@ -35,7 +35,7 @@
     </a>
     <div id="userBlock">
       <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
-      <span class="name" id="userName">Gast</span>
+      <span class="name" id="userName">Gast#0000</span>
       <div id="logoutMenu">
         <button onclick="logout()">🚪 Logout</button>
       </div>
@@ -47,7 +47,7 @@
     <canvas id="mapCanvas" width="900" height="900"></canvas>
   </div>
   <div class="controls">
-    <button onclick="calculateDrops()">🎯 FIND BEST DROP</button>
+    <button onclick="calculateDrops()">🎯 FIND BEST DROP</button>
     <button onclick="resetRoute()">🔄 Reset</button>
   </div>
 
@@ -55,8 +55,8 @@
     // --- User-Block Logic ---
     document.addEventListener('DOMContentLoaded', () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.username && user.avatarUrl) {
-        document.getElementById('userName').textContent = user.username;
+      if (user.username && user.discriminator && user.avatarUrl) {
+        document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
         document.getElementById('userAvatar').src = user.avatarUrl;
       }
     });
@@ -169,11 +169,6 @@
       });
       bestLine = { best, drop: dropPt };
       draw();
-    }
-
-    function logout() {
-      localStorage.removeItem('user');
-      window.location.href = 'index.html';
     }
   </script>
 </body>
