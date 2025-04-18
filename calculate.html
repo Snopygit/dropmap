@@ -73,9 +73,10 @@
       <span class="home-text">Home</span>
     </a>
   </div>
+
   <div id="userBlock">
     <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
-    <span id="userName"></span>
+    <span id="userName">Gast</span>
     <div id="logoutMenu">
       <button onclick="logout()">Log out</button>
     </div>
@@ -96,21 +97,18 @@
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const avatar = document.getElementById('userAvatar');
       const nameEl = document.getElementById('userName');
+      // Wenn eingeloggt, lade Daten, sonst bleibe als Gast
       if (user.username) {
         nameEl.textContent = user.username;
-      } else {
-        // redirect to login if not logged in
-        window.location.href = 'index.html';
-        return;
+        if (user.avatarUrl) avatar.src = user.avatarUrl;
       }
-      if (user.avatarUrl) avatar.src = user.avatarUrl;
     });
     function logout() {
       localStorage.removeItem('user');
       window.location.href = 'index.html';
     }
 
-    // Canvas & Map Logic unchanged...
+    // Canvas & Map Logic (unverändert)
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
     const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png'; img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden');
@@ -123,7 +121,7 @@
     let scale = 1, ox = 0, oy = 0, dragStart = null, dragging = null, offX = 0, offY = 0, bestLine = null;
     img.onload = draw;
 
-    canvas.addEventListener('wheel', e => { /* zoom logic */ draw(); });
+    canvas.addEventListener('wheel', e => { e.preventDefault(); /* zoom logic */ draw(); });
     canvas.addEventListener('mousedown', e => { /* pan logic */ });
     canvas.addEventListener('mousemove', e => { /* pan & drag logic */ draw(); });
     canvas.addEventListener('mouseup', () => { /* reset drag */ });
