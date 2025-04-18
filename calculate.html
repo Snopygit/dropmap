@@ -10,13 +10,13 @@
     .header a { display: flex; align-items: center; text-decoration: none; color: white; }
     .header img.logo { width: 32px; height: 32px; border-radius: 4px; }
     .header .home-text { margin-left: 8px; font-weight: bold; font-size: 18px; }
-    /* User Block */
-    #userBlock { display: flex; align-items: center; gap: 8px; background: #222; padding: 4px 8px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.5); cursor: pointer; position: relative; }
-    #userBlock img { width: 32px; height: 32px; border-radius: 50%; }
-    #userBlock .name { font-size: 16px; }
-    #logoutMenu { position: absolute; top: 110%; right: 0; background: #222; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: none; }
-    #logoutMenu button { background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    #userBlock:hover #logoutMenu { display: block; }
+    /* User Panel */
+    .user-panel { display: flex; align-items: center; gap: 8px; background: #222; padding: 4px 8px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.5); cursor: pointer; position: relative; }
+    .user-panel img { width: 32px; height: 32px; border-radius: 50%; }
+    .user-panel .name { font-size: 16px; }
+    .logout-menu { position: absolute; top: 110%; right: 0; background: #222; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: none; }
+    .logout-menu button { background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .user-panel:hover .logout-menu { display: block; }
     /* Title */
     h2 { margin-top: 70px; text-align: center; }
     /* Map Container */
@@ -33,10 +33,10 @@
       <img class="logo" src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap">
       <span class="home-text">Home</span>
     </a>
-    <div id="userBlock">
+    <div class="user-panel" id="userPanel">
       <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
-      <span class="name" id="userName">Gast#0000</span>
-      <div id="logoutMenu">
+      <span class="name" id="userName">Gast</span>
+      <div class="logout-menu" id="logoutMenu">
         <button onclick="logout()">🚪 Logout</button>
       </div>
     </div>
@@ -52,28 +52,33 @@
   </div>
 
   <script>
-    // --- User-Block Logic ---
-    document.addEventListener('DOMContentLoaded', () => {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.username && user.discriminator && user.avatarUrl) {
+    // Fetch and display Discord user
+    async function fetchUser() {
+      const token = localStorage.getItem('discord_token');
+      if (!token) return;
+      try {
+        const res = await fetch('https://discord.com/api/users/@me', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) throw new Error();
+        const user = await res.json();
         document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
-        document.getElementById('userAvatar').src = user.avatarUrl;
+        document.getElementById('userAvatar').src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
+      } catch {
+        localStorage.removeItem('discord_token');
       }
-    });
+    }
     function logout() {
-      localStorage.removeItem('user');
+      localStorage.removeItem('discord_token');
       window.location.href = 'index.html';
     }
+    window.addEventListener('load', fetchUser);
 
-    // --- Map & Canvas Logic ---
-    const canvas = document.getElementById('mapCanvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png';
-    img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden.');
+    // Canvas & Map Logic
+    const canvas = document.getElementById('mapCanvas'), ctx = canvas.getContext('2d');
+    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png'; img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden.');
 
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
-    const editingIndex = +localStorage.getItem('editingDropmapIndex');
-    const dropmap = dropmaps[editingIndex] || { points: [] };
+    const idx = +localStorage.getItem('editingDropmapIndex');
+    const dropmap = dropmaps[idx] || { points: [] };
 
     const route = [{ x: 150, y: 150 }, { x: 750, y: 750 }];
     let scale = 1, ox = 0, oy = 0, dragStart = null, dragging = null, offX = 0, offY = 0, bestLine = null;
