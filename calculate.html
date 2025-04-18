@@ -105,12 +105,12 @@
   <div class="header">
     <div class="header-left">
       <a href="index.html" style="display:flex; align-items:center; text-decoration:none; color:white; gap:8px;">
-        <img src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap" width="32" height="32">
+        <img src="assets/dropmap.png" alt="Dropmap" width="32" height="32">
         <span>Home</span>
       </a>
     </div>
     <div class="header-right" id="userMenu">
-      <img id="avatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
+      <img id="avatar" src="assets/discord.png" alt="Avatar">
       <span id="username">Gast</span>
       <div class="dropdown" id="userDropdown">
         <button id="logoutBtn">Log out</button>
@@ -131,7 +131,8 @@
     const avatar = document.getElementById('avatar');
     const usernameField = document.getElementById('username');
     const logoutBtn = document.getElementById('logoutBtn');
-    const user = JSON.parse(localStorage.getItem('user')) || { name: 'Gast', avatar: 'fortnite-dropmap/assets/discord.png' };
+    // load user from storage
+    const user = JSON.parse(localStorage.getItem('user')) || { name: 'Gast', avatar: 'assets/discord.png' };
     avatar.src = user.avatar;
     usernameField.textContent = user.name;
     userMenu.addEventListener('mouseenter', () => {
@@ -151,7 +152,7 @@
     // --- Map & Route ---
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
-    const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png';
+    const img = new Image(); img.src = 'assets/map.png';
     const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]');
     const editingIndex = parseInt(localStorage.getItem('editingDropmapIndex'));
     const dropmap = dropmaps[editingIndex];
