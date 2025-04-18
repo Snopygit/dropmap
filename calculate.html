@@ -14,10 +14,10 @@
     .header img.logo { width: 32px; height: 32px; border-radius: 4px; }
     .header .home-text { font-weight: bold; font-size: 18px; color: white; }
 
-    /* User Block */
+    /* User Panel */
     .user-panel {
       position: fixed; top: 10px; right: 20px;
-      display: flex; align-items: center; gap: 8px;
+      display: none; align-items: center; gap: 8px;
       background: #222; padding: 5px 10px; border-radius: 8px;
       box-shadow: 0 0 8px rgba(0,0,0,0.5); z-index: 1000;
     }
@@ -60,6 +60,7 @@
   </style>
 </head>
 <body>
+  <!-- Navigation -->
   <div class="header">
     <a href="index.html" style="display:flex;align-items:center;text-decoration:none;color:white;">
       <img class="logo" src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap">
@@ -69,8 +70,8 @@
 
   <!-- User Panel -->
   <div class="user-panel" id="userPanel">
-    <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
-    <div class="name" id="userName">Gast</div>
+    <img id="userAvatar" src="" alt="Avatar">
+    <div class="name" id="userName"></div>
     <div class="logout-menu" id="logoutMenu">
       <button onclick="logout()">🚪 Log out</button>
     </div>
@@ -86,21 +87,32 @@
   </div>
 
   <script>
-    // User-Block
-    document.addEventListener('DOMContentLoaded', () => {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.username && user.avatarUrl) {
-        document.getElementById('userName').textContent = user.username;
-        document.getElementById('userAvatar').src = user.avatarUrl;
+    // ---- Fetch Discord User ----
+    async function fetchDiscordUser() {
+      const token = localStorage.getItem('discord_token');
+      if (!token) return;
+      try {
+        const res = await fetch('https://discord.com/api/users/@me', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error();
+        const user = await res.json();
+        document.getElementById('userAvatar').src = 
+          `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
+        document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
+        document.getElementById('userPanel').style.display = 'flex';
+      } catch {
+        localStorage.removeItem('discord_token');
       }
-      const up = document.getElementById('userPanel');
-      const lm = document.getElementById('logoutMenu');
-      up.addEventListener('mouseenter', () => lm.style.display = 'block');
-      up.addEventListener('mouseleave', () => lm.style.display = 'none');
-    });
-    function logout() { localStorage.removeItem('user'); window.location.href = 'index.html'; }
+    }
+    fetchDiscordUser();
 
-    // Canvas & Map Logic (existing)
+    function logout() {
+      localStorage.removeItem('discord_token');
+      window.location.href = 'index.html';
+    }
+
+    // ---- Canvas & Map Logic ----
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
     const img = new Image(); img.src = 'fortnite-dropmap/assets/map.png';
@@ -114,15 +126,73 @@
     let scale = 1, ox = 0, oy = 0, dragStart = null, dragging = null, offX = 0, offY = 0, bestLine = null;
     img.onload = draw;
 
-    canvas.addEventListener('wheel', e => { /* existing zoom */ });
-    canvas.addEventListener('mousedown', e => { /* existing mousedown */ });
-    canvas.addEventListener('mousemove', e => { /* existing mousemove */ });
-    canvas.addEventListener('mouseup', () => { /* existing mouseup */ });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const mx = (e.offsetX - ox) / scale, my = (e.offsetY - oy) / scale;
+      scale = Math.min(Math.max(0.5, scale + delta), 3);
+      ox = e.offsetX - mx * scale; oy = e.offsetY - my * scale;
+      draw();
+    });
 
-    function drawArrowLine(a, b) { /* existing arrow drawing */ }
-    function draw() { /* existing draw routine */ }
-    function resetRoute() { /* existing reset */ }
-    function calculateDrops() { /* existing calculate */ }
-  </script>
-</body>
-</html>
+    canvas.addEventListener('mousedown', e => {
+      dragStart = { x: e.clientX, y: e.clientY };
+      dragging = 'map'; offX = e.clientX - ox; offY = e.clientY - oy;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left - ox) / scale;
+      const y = (e.clientY - rect.top - oy) / scale;
+      route.forEach((pt, i) => {
+        if (Math.hypot(pt.x - x, pt.y - y) < 12) {
+          dragging = i; offX = pt.x - x; offY = pt.y - y;
+        }
+      });
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (!dragStart) return;
+      if (dragging === 'map') {
+        ox = e.clientX - offX; oy = e.clientY - offY;
+      } else {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - ox) / scale;
+        const y = (e.clientY - rect.top - oy) / scale;
+        route[dragging] = { x: x + offX, y: y + offY };
+      }
+      draw();
+    });
+
+    canvas.addEventListener('mouseup', () => { dragStart = null; dragging = null; });
+
+    function drawArrowLine(a, b) {
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len = Math.hypot(dx, dy), steps = Math.floor(len / 30), ang = Math.atan2(dy, dx);
+      for (let i = 0; i < steps; i++) {
+        const x = a.x + dx * (i / steps), y = a.y + dy * (i / steps);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+        ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(5, 0); ctx.lineTo(-5, 5); ctx.closePath();
+        ctx.fillStyle = '#fff'; ctx.fill(); ctx.restore();
+      }
+    }
+
+    function draw() {
+      canvas.width = 900; canvas.height = 900;
+      ctx.setTransform(scale, 0, 0, scale, ox, oy);
+      ctx.clearRect(0, 0, 900, 900);
+      ctx.drawImage(img, 0, 0, 900, 900);
+
+      drawArrowLine(route[0], route[1]);
+      route.forEach(p => {
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      });
+      dropmap.points.forEach(p => {
+        ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'black'; ctx.lineWidth = 2; ctx.stroke();
+      });
+
+      if (bestLine) {
+        const { best, drop } = bestLine;
+        ctx.fillStyle = 'rgba(0,255,255,0.5)'; ctx.beginPath(); ctx.arc(best.x, best.y, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'cyan'; ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.moveTo(best.x, best.y); ctx.line
+
