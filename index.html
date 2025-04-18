@@ -6,7 +6,7 @@
   <style>
     body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
     body.no-scroll { overflow: hidden; }
-    .header { display: flex; align-items: center; gap: 20px; position: absolute; top: 10px; left: 10px; }
+    .header { display: flex; align-items: center; gap: 20px; position: absolute; top: 10px; left: 10px; z-index: 1000; }
     .dropmap-list { margin-top: 80px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
     .dropmap-card { background: #222; border-radius: 10px; padding: 10px; text-align: center; width: 200px; }
     .dropmap-card img { width: 100%; border-radius: 8px; margin-bottom: 8px; }
@@ -15,13 +15,13 @@
     button.primary { margin-top: 20px; padding: 10px 20px; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
     .delete-button { background: #dc3545; color: white; }
 
-    /* Overlays */
+    /* Overlay */
     .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: none; z-index: 999; }
 
     /* Login Popup */
     .login-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2C2F33; padding: 30px 20px 20px; border-radius: 10px; box-shadow: 0 0 20px 5px #7289DA; display: none; flex-direction: column; align-items: center; z-index: 1000; transition: opacity 0.3s ease; }
     .login-popup img { width: 64px; height: 64px; margin-bottom: 16px; }
-    .login-popup button { background: #7289DA; border: none; color: white; padding: 10px 16px; font-size: 16px; border-radius: 5px; cursor: pointer; }
+    .login-popup button { background: #7289DA; border: none; color: white; padding: 10px 16px; font-size: 16px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
     .login-popup .close-btn { position: absolute; top: 8px; right: 10px; background: transparent; font-size: 18px; color: white; border: none; cursor: pointer; }
 
     /* Delete Confirmation Popup */
@@ -48,13 +48,13 @@
   <div class="login-popup" id="loginPopup">
     <button class="close-btn" onclick="closeLogin()">✖</button>
     <img src="assets/discord.png" alt="Discord Login">
-    <button onclick="loginDiscord()">Login mit Discord</button>
+    <button onclick="loginDiscord()">🎮 Login mit Discord</button>
   </div>
 
   <!-- Delete Confirmation Popup -->
   <div class="overlay" id="deleteOverlay"></div>
   <div class="confirm-popup" id="deletePopup">
-    <button class="close-btn" onclick="closeDelete()">✖</button>
+    <button class="close-btn" onclick="closeDelete(event)">✖</button>
     <p>Diese Dropmap wirklich löschen?</p>
     <button class="delete-button" onclick="confirmDelete()">🗑️ Löschen</button>
   </div>
@@ -82,9 +82,8 @@
       }, 300);
     }
     function loginDiscord() {
-      document.body.classList.remove('no-scroll');
-      window.location.href = 'https://discord.com/oauth2/authorize?client_id=1362743453066203186&response_type=code&redirect_uri='+
-        encodeURIComponent('https://snopygit.github.io/dropmap/') + '&scope=email%20identify';
+      const redirectUri = encodeURIComponent('https://snopygit.github.io/dropmap/');
+      window.location.href = `https://discord.com/oauth2/authorize?client_id=1362743453066203186&response_type=code&redirect_uri=${redirectUri}&scope=identify%20email`;
     }
     window.onload = showLogin;
 
