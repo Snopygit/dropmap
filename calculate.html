@@ -186,7 +186,7 @@
       });
       if (bestLine) {
         const { best, drop } = bestLine;
-        ctx.fillStyle = 'cyan'; ctx.beginPath(); ctx.arc(best.x, best.y, 8, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = 'rgba(0,255,255,0.5)'; ctx.beginPath(); ctx.arc(best.x, best.y, 8, 0, 2 * Math.PI); ctx.fill();
         ctx.strokeStyle = 'cyan'; ctx.setLineDash([5, 5]);
         ctx.beginPath(); ctx.moveTo(best.x, best.y); ctx.lineTo(drop.x, drop.y); ctx.stroke(); ctx.setLineDash([]);
       }
