@@ -31,6 +31,7 @@
     .header img {
       width: 32px;
       height: 32px;
+      border-radius: 4px;
     }
     .header h1 {
       margin: 0;
@@ -215,6 +216,7 @@
     .whitelist-popup h3 {
       margin: 0 0 20px;
       font-size: 24px;
+      color: white;
     }
     .whitelist-popup button {
       background: #dc3545;
@@ -232,12 +234,14 @@
 
   <!-- Header mit Logo & Titel -->
   <div class="header">
-    <img
-      src="fortnite-dropmap/assets/dropmap.png"
-      alt="Dropmap"
-      onerror="this.onerror=null; this.src='fortnite-dropmap/assets/dropmap.png'"
-    >
-    <h1>Deine Dropmaps</h1>
+    <a href="index.html" style="display:flex; align-items:center; text-decoration:none; color:white;">
+      <img
+        src="/dropmap/fortnite-dropmap/assets/dropmap.png"
+        alt="Dropmap"
+        onerror="this.onerror=null; this.src='/dropmap/assets/dropmap.png';"
+      >
+      <h1>Deine Dropmaps</h1>
+    </a>
   </div>
 
   <!-- Discord User Panel -->
@@ -257,7 +261,7 @@
   <div class="overlay" id="loginOverlay"></div>
   <div class="popup login-popup" id="loginPopup">
     <button class="close-btn" onclick="closeLogin()">✖</button>
-    <img src="fortnite-dropmap/assets/discord.png" alt="Discord Login">
+    <img src="/dropmap/fortnite-dropmap/assets/discord.png" alt="Discord Login">
     <button onclick="loginDiscord()">🎮 Login mit Discord</button>
   </div>
 
@@ -303,13 +307,13 @@
         }
 
         // User‑Panel füllen
-        document.getElementById('userAvatar').src  = 
+        document.getElementById('userAvatar').src  =
           `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
         document.getElementById('userName').textContent =
           `${user.username}#${user.discriminator}`;
         document.getElementById('userPanel').style.display = 'flex';
 
-        // Falls jemand vorher auf Whitelist‑Popup war, ausblenden
+        // Eventuell Whitelist‑Popup verbergen
         document.getElementById('whitelistOverlay').style.display = 'none';
         document.getElementById('whitelistPopup').style.display = 'none';
         document.body.classList.remove('no-scroll');
@@ -407,7 +411,7 @@
         const card = document.createElement('div');
         card.className = 'dropmap-card';
         card.innerHTML = `
-          <img src="fortnite-dropmap/assets/map.png" alt="Vorschau">
+          <img src="/dropmap/fortnite-dropmap/assets/map.png" alt="Vorschau">
           <p>${m.name || 'Unbenannt'}</p>
           <button class="primary-action" onclick="editDropmap(${i})">🖊️ Bearbeiten</button>
           <button class="calculate-action" onclick="calculateDrop(${i})">🎯 Calculate Drop</button>
@@ -437,7 +441,7 @@
 
     // === Initialisierung ===
     window.addEventListener('load', () => {
-      // Implicit Grant Token aus URL-Hash übernehmen
+      // Implicit Grant Token übernehmen
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       if (params.has('access_token')) {
@@ -448,5 +452,6 @@
       fetchUser().then(renderDropmaps);
     });
   </script>
+
 </body>
 </html>
