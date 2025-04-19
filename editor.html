@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Dropmap bearbeiten</title>
   <style>
-    body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow: hidden; }
+    body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
     body.no-scroll { overflow: hidden; }
 
     /* Home-Link */
@@ -92,46 +92,3 @@
     <button class="close-btn" onclick="closePopup()">✖</button>
     <label for="dropmapName">Name der Dropmap:</label>
     <input type="text" id="dropmapName" placeholder="z.B. Meine Dropmap">
-    <button class="save-button" onclick="saveDropmapName()">Speichern</button>
-  </div>
-
-  <script>
-    // Whitelist IDs
-    const WHITELIST = ['1221451449695735884','644602114256928789','868581285277347920'];
-
-    async function fetchUser() {
-      const token = localStorage.getItem('discord_token');
-      if (!token) return;
-      try {
-        const res = await fetch('https://discord.com/api/users/@me', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!res.ok) throw new Error();
-        const user = await res.json();
-        if (!WHITELIST.includes(user.id)) {
-          document.body.classList.add('no-scroll');
-          document.getElementById('overlayPopup').style.display = 'block';
-          const pop = document.getElementById('notWhitePopup');
-          pop.style.display = 'flex';
-          requestAnimationFrame(() => pop.style.opacity = '1');
-          return;
-        }
-        document.getElementById('userAvatar').src =
-          `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
-        document.getElementById('userName').textContent =
-          `${user.username}#${user.discriminator}`;
-        document.getElementById('userPanel').style.display = 'flex';
-      } catch {
-        localStorage.removeItem('discord_token');
-      }
-    }
-    function logout() {
-      localStorage.removeItem('discord_token');
-      window.location = 'index.html';
-    }
-    window.addEventListener('load', fetchUser);
-
-    // ... der bestehende Editor‑Code bleibt unverändert hier ...
-  </script>
-</body>
-</html>
