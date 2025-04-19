@@ -16,8 +16,7 @@
 
     /* Header mit Home-Link */
     .header {
-      position: fixed;
-      top: 10px; left: 10px;
+      position: fixed; top: 10px; left: 10px;
       display: flex; align-items: center; gap: 12px;
       z-index: 1000;
     }
@@ -29,50 +28,12 @@
       margin: 0; text-decoration: none;
     }
 
-    /* Discord‑User‑Panel */
-    #userPanel {
-      position: fixed;
-      top: 10px; right: 10px;
-      display: none;
-      align-items: center; gap: 8px;
-      padding: 5px 10px;
-      background: #222;
-      border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.5);
-      cursor: pointer;
-      z-index: 1000;
-    }
-    #userPanel img {
-      width: 32px; height: 32px; border-radius: 50%;
-    }
-    #userPanel .name {
-      color: white; font-weight: bold;
-    }
-    #logoutMenu {
-      position: absolute;
-      top: 110%; left: 50%;
-      transform: translateX(-50%);
-      background: #222;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      display: none; opacity: 0;
-      transition: opacity 0.3s ease;
-      white-space: nowrap;
-      z-index: 1001;
-    }
-    #logoutMenu button {
-      background: #dc3545; color: white;
-      border: none; padding: 8px 12px;
-      border-radius: 4px; font-weight: bold;
-      cursor: pointer; width: 100%;
-    }
-
     /* Save‑Button fixiert unter Titel */
     h2 {
       margin-top: 80px; text-align: center;
     }
     .controls {
-      position: absolute;
+      position: fixed;
       top: 120px; left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
@@ -172,38 +133,6 @@
       border-radius:50%; transform:translate(-50%,-50%);
       cursor:grab; z-index:1000;
     }
-
-    /* Whitelist‑Overlay */
-    #whitelistOverlay {
-      position: fixed; top:0; left:0;
-      width:100vw; height:100vh;
-      background:rgba(0,0,0,0.8);
-      display:none; z-index:2000;
-      overflow:hidden;
-    }
-    #whitelistPopup {
-      position: fixed; top:50%; left:50%;
-      transform: translate(-50%,-50%) scale(0.8);
-      background:#222; padding:30px;
-      border-radius:12px;
-      box-shadow: 0 0 20px 5px #7289da;
-      color:white;
-      text-align:center;
-      display:none; z-index:2001;
-      animation: popIn 0.3s forwards;
-    }
-    #whitelistPopup h3 {
-      margin:0 0 20px; font-size:24px;
-    }
-    #whitelistPopup button {
-      background:#dc3545; color:white;
-      border:none; padding:12px 20px;
-      border-radius:8px; font-size:16px;
-      cursor:pointer; font-weight:bold;
-    }
-    @keyframes popIn {
-      to { transform: translate(-50%,-50%) scale(1); }
-    }
   </style>
 </head>
 <body>
@@ -211,17 +140,8 @@
   <div class="header">
     <a href="index.html" style="display:flex;align-items:center;">
       <img class="logo" src="fortnite-dropmap/assets/dropmap.png" alt="Dropmap">
-      <h1 class="home-text">Home</h1>
+      <span class="home-text">Home</span>
     </a>
-  </div>
-
-  <!-- Discord‑UserPanel -->
-  <div id="userPanel">
-    <img id="userAvatar" src="" alt="Avatar">
-    <span class="name" id="userName"></span>
-    <div id="logoutMenu">
-      <button onclick="logout()">🚪 Logout</button>
-    </div>
   </div>
 
   <!-- Titel + Save -->
@@ -253,104 +173,51 @@
     <button class="save-button" onclick="saveDropmapName()">Speichern</button>
   </div>
 
-  <!-- Whitelist Overlay + Popup -->
-  <div id="whitelistOverlay"></div>
-  <div id="whitelistPopup">
-    <h3>Du bist nicht whitelisted!</h3>
-    <button onclick="logout()">Log mich aus</button>
-  </div>
-
   <script>
-    // === Whitelist-IDs ===
-    const ALLOWED = [
-      '1221451449695735884',
-      '775406913206353980',
-      '644602114256928789',
-      '868581285277347920'
-    ];
-
-    // === Discord‑Login & Whitelist ===
-    async function fetchUser() {
-      const token = localStorage.getItem('discord_token');
-      if (!token) return redirectToIndex();
-      try {
-        const res = await fetch('https://discord.com/api/users/@me', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!res.ok) throw new Error();
-        const u = await res.json();
-        // Whitelist‑Check:
-        if (!ALLOWED.includes(u.id)) {
-          showWhitelistPopup();
-          return;
-        }
-        // Anzeige
-        document.getElementById('userName').textContent = `${u.username}#${u.discriminator}`;
-        document.getElementById('userAvatar').src = `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`;
-        document.getElementById('userPanel').style.display = 'flex';
-      } catch {
-        redirectToIndex();
-      }
+    // === Undo/Redo-History ===
+    const history = { past: [], future: [] };
+    function saveHistory() {
+      history.past.push(JSON.stringify(dropmap.points));
+      history.future = [];
     }
-    function redirectToIndex() {
-      localStorage.removeItem('discord_token');
-      window.location.href = 'index.html';
+    function undo() {
+      if (!history.past.length) return;
+      history.future.push(JSON.stringify(dropmap.points));
+      dropmap.points = JSON.parse(history.past.pop());
+      rerenderAllMarkers();
     }
-    function logout() {
-      localStorage.removeItem('discord_token');
-      window.location.href = 'index.html';
+    function redo() {
+      if (!history.future.length) return;
+      history.past.push(JSON.stringify(dropmap.points));
+      dropmap.points = JSON.parse(history.future.pop());
+      rerenderAllMarkers();
     }
-
-    // === Whitelist‑Popup ===
-    function showWhitelistPopup() {
-      // Scroll lock:
-      document.body.classList.add('no-scroll');
-      // Overlay + Popup anzeigen
-      document.getElementById('whitelistOverlay').style.display = 'block';
-      const pop = document.getElementById('whitelistPopup');
-      pop.style.display = 'block';
+    function rerenderAllMarkers() {
+      document.querySelectorAll('.marker').forEach(el => el.remove());
+      dropmap.points.forEach((_, i) => renderMarker(i));
     }
-
-    // === Verzögertes Ausblenden Logoutmenu ===
-    const userPanel = document.getElementById('userPanel');
-    const logoutMenu = document.getElementById('logoutMenu');
-    let hideTimeout;
-
-    userPanel.addEventListener('mouseenter', () => {
-      clearTimeout(hideTimeout);
-      logoutMenu.style.display = 'block';
-      requestAnimationFrame(() => logoutMenu.style.opacity = '1');
-    });
-    userPanel.addEventListener('mouseleave', () => {
-      hideTimeout = setTimeout(() => {
-        logoutMenu.style.opacity = '0';
-        setTimeout(() => logoutMenu.style.display = 'none', 300);
-      }, 1500);
-    });
-    logoutMenu.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
-    logoutMenu.addEventListener('mouseleave', () => {
-      hideTimeout = setTimeout(() => {
-        logoutMenu.style.opacity = '0';
-        setTimeout(() => logoutMenu.style.display = 'none', 300);
-      }, 1500);
-    });
-
-    window.addEventListener('load', fetchUser);
 
     // === Map/Editor‑Logik ===
-    const canvas = document.getElementById('mapCanvas'), ctx = canvas.getContext('2d'), img = new Image();
-    img.src = 'fortnite-dropmap/assets/map.png';
-    img.onload = draw;
-    img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden.');
+    const canvas      = document.getElementById('mapCanvas'),
+          ctx         = canvas.getContext('2d'),
+          mapC        = document.getElementById('mapContainer'),
+          markerIcon  = document.getElementById('markerIcon'),
+          contextMenu = document.getElementById('contextMenu'),
+          overlay     = document.getElementById('overlay'),
+          popup       = document.getElementById('popup');
 
     let dropmaps = JSON.parse(localStorage.getItem('dropmaps')||'[]'),
         idx      = +localStorage.getItem('editingDropmapIndex'),
-        dropmap  = dropmaps[idx] || { points: [] };
+        dropmap  = dropmaps[idx]||{points:[]};
 
     let scale=1, ox=0, oy=0, dragStart=null, dragging=false, editingEl=null;
+    const img = new Image();
+    img.src   = 'fortnite-dropmap/assets/map.png';
+    img.onload = draw;
+    img.onerror = ()=>alert('Fehler: Karte konnte nicht geladen werden.');
 
     // Pan & Zoom
-    canvas.addEventListener('wheel', e=>{
+    canvas.addEventListener('wheel', e => {
       e.preventDefault();
       const d   = e.deltaY>0 ? -0.1 : 0.1,
             mx  = (e.offsetX - ox)/scale,
@@ -360,15 +227,14 @@
       oy    = e.offsetY - my*scale;
       draw(); updateMarkers(); updateContextMenu();
     });
-    canvas.addEventListener('mousedown', e=>{
-      dragStart = { x:e.clientX, y:e.clientY };
-      dragging  = false;
+    canvas.addEventListener('mousedown', e => {
+      dragStart = { x:e.clientX, y:e.clientY }; dragging = false;
     });
-    canvas.addEventListener('mousemove', e=>{
+    canvas.addEventListener('mousemove', e => {
       if (!dragStart) return;
       const dx = e.clientX - dragStart.x,
             dy = e.clientY - dragStart.y;
-      if (!dragging && Math.hypot(dx,dy)>5) dragging=true;
+      if (!dragging && Math.hypot(dx,dy)>5) dragging = true;
       if (dragging) {
         ox += dx; oy += dy;
         dragStart = { x:e.clientX, y:e.clientY };
@@ -378,41 +244,55 @@
     canvas.addEventListener('mouseup', ()=> dragStart = null);
 
     // Marker‑Handling
-    document.getElementById('markerIcon').addEventListener('dragstart', e=>{
+    markerIcon.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain','newMarker');
     });
-    const mapC = document.getElementById('mapContainer');
-    mapC.addEventListener('dragover', e=> e.preventDefault());
-    mapC.addEventListener('drop', e=>{
+    mapC.addEventListener('dragover', e => e.preventDefault());
+    mapC.addEventListener('drop', e => {
       e.preventDefault();
-      const data = e.dataTransfer.getData('text/plain'),
-            rect = canvas.getBoundingClientRect(),
-            x    = e.clientX - rect.left,
-            y    = e.clientY - rect.top;
-      if (data === 'newMarker') addMarker(x,y);
-      else if (data.startsWith('edit:')) {
-        const i = +data.split(':')[1],
-              mx = (x - ox)/scale,
-              my = (y - oy)/scale;
-        dropmap.points[i] = { x:mx, y:my };
+      // Maus‑Position rel. Canvas
+      const rect    = canvas.getBoundingClientRect(),
+            canvasX = e.clientX - rect.left,
+            canvasY = e.clientY - rect.top,
+            mapX    = (canvasX - ox)/scale,
+            mapY    = (canvasY - oy)/scale,
+            data    = e.dataTransfer.getData('text/plain');
+
+      if (data === 'newMarker') {
+        saveHistory();
+        addMarker(mapX, mapY);
+      } else if (data.startsWith('edit:')) {
+        saveHistory();
+        const i = +data.split(':')[1];
+        dropmap.points[i] = { x:mapX, y:mapY };
         updateMarkers(); updateContextMenu();
       }
     });
 
     function addMarker(x,y) {
-      const mx = (x - ox)/scale, my = (y - oy)/scale, i = dropmap.points.length;
-      dropmap.points.push({ x:mx, y:my });
-      const el = document.createElement('div');
-      el.className = 'marker'; el.dataset.idx = i; el.draggable = false;
-      el.addEventListener('dragstart', ev=> ev.dataTransfer.setData('text/plain','edit:'+i));
-      el.addEventListener('click', ev=>{
-        ev.stopPropagation(); editingEl = el;
+      const i = dropmap.points.length;
+      dropmap.points.push({ x, y });
+      renderMarker(i);
+    }
+    function renderMarker(i) {
+      const p  = dropmap.points[i],
+            el = document.createElement('div');
+      el.className   = 'marker';
+      el.dataset.idx = i;
+      el.draggable   = false;
+      el.addEventListener('dragstart', ev=> {
+        ev.dataTransfer.setData('text/plain','edit:'+i);
+      });
+      el.addEventListener('click', ev=> {
+        ev.stopPropagation();
+        editingEl = el;
         updateContextMenu();
-        document.getElementById('contextMenu').style.display = 'block';
+        contextMenu.style.display = 'block';
       });
       mapC.appendChild(el);
       updateMarkers();
     }
+
     function updateMarkers() {
       document.querySelectorAll('.marker').forEach((el,i)=>{
         const p = dropmap.points[i];
@@ -420,70 +300,74 @@
         el.style.top  = (oy + p.y*scale)+'px';
       });
     }
+
     function updateContextMenu() {
       if (!editingEl) return;
-      const menu = document.getElementById('contextMenu'),
-            rc   = mapC.getBoundingClientRect(),
-            rm   = editingEl.getBoundingClientRect();
-      menu.style.left = (rm.left + rm.width/2 - menu.offsetWidth/2 - rc.left) + 'px';
-      menu.style.top  = (rm.top - menu.offsetHeight - 8 - rc.top) + 'px';
+      const rc = mapC.getBoundingClientRect(),
+            rm = editingEl.getBoundingClientRect();
+      contextMenu.style.left = (rm.left + rm.width/2 - contextMenu.offsetWidth/2 - rc.left) + 'px';
+      contextMenu.style.top  = (rm.top - contextMenu.offsetHeight - 8 - rc.top) + 'px';
     }
-    document.body.addEventListener('click', e=>{
+    document.body.addEventListener('click', e => {
       if (!e.target.closest('.context-menu'))
-        document.getElementById('contextMenu').style.display = 'none';
+        contextMenu.style.display = 'none';
     });
-    function enableEdit(){
+
+    function enableEdit() {
+      saveHistory();
       editingEl.draggable = true;
-      document.getElementById('contextMenu').style.display = 'none';
+      contextMenu.style.display = 'none';
     }
-    function deleteMarker(){
+    function deleteMarker() {
+      saveHistory();
       const i = +editingEl.dataset.idx;
       dropmap.points.splice(i,1);
       editingEl.remove();
-      document.querySelectorAll('.marker').forEach((m,j)=> m.dataset.idx = j);
+      document.querySelectorAll('.marker').forEach((m,j)=> m.dataset.idx=j);
       updateMarkers();
-      document.getElementById('contextMenu').style.display = 'none';
+      contextMenu.style.display = 'none';
     }
-    function undo(){}
-    function redo(){}
 
-    // Draw
-    function draw(){
-      canvas.width  = 900; canvas.height = 900;
+    // Zeichnen
+    function draw() {
+      canvas.width  = 900;
+      canvas.height = 900;
       ctx.setTransform(scale,0,0,scale,ox,oy);
       ctx.clearRect(0,0,900,900);
       ctx.drawImage(img,0,0,900,900);
     }
 
-    // Popup Speichern
-    function showPopup(){
+    // Save‑Popup
+    function showPopup() {
       document.body.classList.add('no-scroll');
-      const ov = document.getElementById('overlay'),
-            pp = document.getElementById('popup');
-      ov.style.display = 'block';
-      pp.style.display = 'flex'; pp.style.opacity = '0';
-      setTimeout(()=> pp.style.opacity = '1', 10);
+      overlay.style.display = 'block';
+      popup.style.display   = 'flex';
+      popup.style.opacity   = '0';
+      setTimeout(()=> popup.style.opacity='1', 10);
     }
-    function hidePopup(e){
-      if (e.target === document.getElementById('overlay')) closePopup();
+    function hidePopup(e) {
+      if (e.target !== overlay) return;
+      closePopup();
     }
-    function closePopup(){
-      const ov = document.getElementById('overlay'),
-            pp = document.getElementById('popup');
-      pp.style.opacity = '0'; ov.style.opacity = '0';
+    function closePopup() {
+      popup.style.opacity = '0';
+      overlay.style.opacity = '0';
       setTimeout(()=>{
-        pp.style.display = 'none';
-        ov.style.display = 'none';
+        popup.style.display = 'none';
+        overlay.style.display = 'none';
         document.body.classList.remove('no-scroll');
       }, 300);
     }
-    function saveDropmapName(){
+    function saveDropmapName() {
       const v = document.getElementById('dropmapName').value.trim();
       dropmap.name = v || dropmap.name || 'Neue Dropmap';
       dropmaps[idx] = dropmap;
       localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
       window.location.href = 'index.html';
     }
+
+    // Initial render existing markers
+    dropmap.points.forEach((_, i) => renderMarker(i));
   </script>
 </body>
 </html>
