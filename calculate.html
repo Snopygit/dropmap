@@ -50,12 +50,20 @@
       box-shadow: 0 0 8px rgba(0,0,0,0.5);
       cursor: default;
     }
-    #userBlock img { width: 32px; height: 32px; border-radius: 50%; }
-    #userBlock .name {
-      font-size: 14px;
-      color: white;
-      white-space: nowrap;
-    }
+#userBlock {
+  position: fixed;
+  top: 10px;
+  right: 120px; /* statt 20px, damit es weiter nach links rückt */
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: #222;
+  padding: 5px 10px;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.5);
+  cursor: default;
+  z-index: 1000;
+}
     #logoutMenu {
       position: absolute;
       top: 110%; right: 0;
