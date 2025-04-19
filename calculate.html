@@ -11,53 +11,41 @@
       font-family: sans-serif;
       overflow: hidden;
     }
-    /* Header */
     .header {
       position: fixed;
-      top: 10px;
-      left: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      top: 10px; left: 20px;
+      display: flex; align-items: center; gap: 8px;
       z-index: 1000;
     }
     .header img.logo {
       width: 32px; height: 32px; border-radius: 4px;
     }
     .header .home-text {
-      font-weight: bold;
-      font-size: 18px;
-      color: white;
+      font-weight: bold; font-size: 18px; color: white;
       text-decoration: none;
     }
 
     /* User‑Block */
     #userBlock {
       position: fixed;
-      top: 10px;
-      right: 20px;
+      top: 10px; right: 20px;
       display: none;
-      align-items: center;
-      gap: 10px;
+      align-items: center; gap: 10px;
       background: #222;
       padding: 10px 16px;
       border-radius: 10px;
       box-shadow: 0 0 8px rgba(0,0,0,0.5);
-      cursor: default;
       z-index: 1000;
     }
     #userBlock img {
       width: 32px; height: 32px; border-radius: 50%;
     }
     #userBlock .name {
-      color: white;
-      font-weight: bold;
-      font-size: 16px;
+      color: white; font-weight: bold; font-size: 16px;
     }
     #logoutMenu {
       position: absolute;
-      top: 110%;
-      right: 0;
+      top: 110%; right: 0;
       background: #222;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
@@ -74,19 +62,12 @@
       cursor: pointer;
       font-weight: bold;
     }
-    /* beim Hovern soll Menü 2s stehen bleiben */
-    #userBlock:hover #logoutMenu,
-    #logoutMenu:hover {
-      display: block;
-      opacity: 1;
-    }
 
     h2 {
       margin-top: 80px;
       text-align: center;
     }
 
-    /* Karte */
     #mapContainer {
       margin-top: 100px;
       display: flex;
@@ -100,7 +81,7 @@
       height: auto;
     }
 
-    /* Controls direkt unter der Überschrift, fixiert */
+    /* Controls unter der Überschrift, fixiert */
     .controls {
       position: fixed;
       top: 140px; /* unter H2 */
@@ -120,9 +101,7 @@
       font-weight: bold;
       font-size: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      display: flex; align-items: center; gap: 8px;
     }
   </style>
 </head>
@@ -138,7 +117,7 @@
     <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
     <span class="name" id="userName">Gast</span>
     <div id="logoutMenu">
-      <button onclick="logout()">🚪 Log out</button>
+      <button onclick="logout()">🚪 Log out</button>
     </div>
   </div>
 
@@ -154,52 +133,78 @@
   </div>
 
   <script>
-    // === Discord‑Login & Benutzerinfos ===
+    // --- Discord‑Login & User Panel ---
     async function fetchUser() {
       const token = localStorage.getItem('discord_token');
-      if (!token) return window.location.href='index.html';
+      if (!token) return window.location = 'index.html';
       const res = await fetch('https://discord.com/api/users/@me', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (!res.ok) {
         localStorage.removeItem('discord_token');
-        return window.location.href='index.html';
+        return window.location = 'index.html';
       }
       const user = await res.json();
       document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
       document.getElementById('userAvatar').src =
         `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
       document.getElementById('userBlock').style.display = 'flex';
+
+      // Hover‐Logik mit Verzögerung
+      const block = document.getElementById('userBlock');
+      const menu  = document.getElementById('logoutMenu');
+      let hideTimeout;
+
+      block.addEventListener('mouseenter', () => {
+        clearTimeout(hideTimeout);
+        menu.style.display = 'block';
+        menu.style.opacity = '1';
+      });
+      block.addEventListener('mouseleave', () => {
+        hideTimeout = setTimeout(()=>{
+          menu.style.opacity = '0';
+          setTimeout(()=> menu.style.display = 'none', 300);
+        }, 1500);
+      });
+      menu.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+      menu.addEventListener('mouseleave', () => {
+        hideTimeout = setTimeout(()=>{
+          menu.style.opacity = '0';
+          setTimeout(()=> menu.style.display = 'none', 300);
+        }, 1500);
+      });
     }
+
     function logout() {
       localStorage.removeItem('discord_token');
       window.location = 'index.html';
     }
+
     window.onload = fetchUser;
 
-    // === Canvas & Drop‑Logik ===
+    // --- Canvas & Drop‑Logik ---
     const canvas = document.getElementById('mapCanvas'),
           ctx    = canvas.getContext('2d'),
           img    = new Image();
     img.src = 'fortnite-dropmap/assets/map.png';
     img.onerror = ()=>alert('Fehler: Karte konnte nicht geladen werden');
 
-    const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]'),
+    const dropmaps = JSON.parse(localStorage.getItem('dropmaps')||'[]'),
           idx      = +localStorage.getItem('editingDropmapIndex'),
           dropmap  = dropmaps[idx] || { points: [] };
-    const route = [{ x:150,y:150 },{ x:750,y:750 }];
+    const route = [{x:150,y:150},{x:750,y:750}];
     let scale=1, ox=0, oy=0, dragStart=null,
-        dragging=null, offX=0, offY=0,
-        bestLine=null;
+        dragging=null, offX=0, offY=0, bestLine=null;
 
     img.onload = draw;
 
     canvas.addEventListener('wheel', e=>{
       e.preventDefault();
       const delta = e.deltaY>0 ? -0.1 : 0.1;
-      const mx=(e.offsetX-ox)/scale, my=(e.offsetY-oy)/scale;
+      const mx = (e.offsetX-ox)/scale, my = (e.offsetY-oy)/scale;
       scale = Math.min(Math.max(0.5, scale+delta), 3);
-      ox = e.offsetX - mx*scale; oy = e.offsetY - my*scale;
+      ox = e.offsetX - mx*scale;
+      oy = e.offsetY - my*scale;
       draw();
     });
 
@@ -211,7 +216,7 @@
       const x = (e.clientX-rect.left-ox)/scale,
             y = (e.clientY-rect.top-oy)/scale;
       route.forEach((pt,i)=>{
-        if (Math.hypot(pt.x-x, pt.y-y) < 12) {
+        if (Math.hypot(pt.x-x,pt.y-y)<12) {
           dragging = i;
           offX = pt.x - x;
           offY = pt.y - y;
@@ -222,7 +227,8 @@
     canvas.addEventListener('mousemove', e=>{
       if (!dragStart) return;
       if (dragging==='map') {
-        ox = e.clientX - offX; oy = e.clientY - offY;
+        ox = e.clientX - offX;
+        oy = e.clientY - offY;
       } else {
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX-rect.left-ox)/scale,
@@ -260,8 +266,7 @@
     }
 
     function draw() {
-      canvas.width = 900;
-      canvas.height = 900;
+      canvas.width = 900; canvas.height = 900;
       ctx.setTransform(scale,0,0,scale,ox,oy);
       ctx.clearRect(0,0,900,900);
       ctx.drawImage(img,0,0,900,900);
@@ -306,9 +311,9 @@
     }
 
     function resetRoute() {
-      route[0] = { x:150,y:150 };
-      route[1] = { x:750,y:750 };
-      bestLine = null;
+      route[0]={x:150,y:150};
+      route[1]={x:750,y:750};
+      bestLine=null;
       draw();
     }
 
@@ -324,7 +329,7 @@
               py=p.y-route[0].y,
               proj=px*ux+py*uy,
               projPt={ x:route[0].x+ux*proj, y:route[0].y+uy*proj },
-              dist=Math.hypot(projPt.x-p.x, projPt.y-p.y);
+              dist=Math.hypot(projPt.x-p.x,projPt.y-p.y);
         if (dist<bestDist) {
           bestDist=dist; best=projPt; bestDrop=p;
         }
