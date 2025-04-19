@@ -9,9 +9,10 @@
       background: #111;
       color: white;
       font-family: sans-serif;
-      /* allow scrolling for map */
-      overflow: auto;
+      overflow: auto; /* damit die Map wieder scrollt */
     }
+
+    /* Header */
     .header {
       position: fixed;
       top: 10px;
@@ -32,11 +33,13 @@
       color: white;
       text-decoration: none;
     }
-    .user-panel {
+
+    /* User-Panel oben rechts */
+    #userBlock {
       position: fixed;
       top: 10px;
       right: 20px;
-      display: flex;
+      display: none; /* erst nach Login */
       align-items: center;
       gap: 8px;
       cursor: pointer;
@@ -45,18 +48,17 @@
       padding: 5px 10px;
       border-radius: 8px;
       box-shadow: 0 0 8px rgba(0,0,0,0.5);
-      display: none; /* hidden until fetchUser runs */
     }
-    .user-panel img {
+    #userBlock img {
       width: 32px;
       height: 32px;
       border-radius: 50%;
     }
-    .user-panel .name {
+    #userBlock .name {
       color: white;
       font-weight: bold;
     }
-    .logout-menu {
+    #logoutMenu {
       position: absolute;
       top: 110%;
       right: 0;
@@ -65,7 +67,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
       display: none;
     }
-    .logout-menu button {
+    #logoutMenu button {
       background: #dc3545;
       color: white;
       border: none;
@@ -74,18 +76,21 @@
       cursor: pointer;
       font-weight: bold;
     }
-    .user-panel:hover .logout-menu {
+    #userBlock:hover #logoutMenu {
       display: block;
     }
+
     h2 {
       margin-top: 80px;
       text-align: center;
     }
+
+    /* Map-Container */
     #mapContainer {
-      margin-top: 120px;
+      margin-top: 140px; /* genug Platz für Header + Buttons */
       display: flex;
       justify-content: center;
-      padding-bottom: 100px; /* space for controls */
+      padding-bottom: 100px; /* für den festen Footer-Bereich */
     }
     #mapCanvas {
       border: 2px solid #333;
@@ -93,11 +98,12 @@
       cursor: grab;
       max-width: 90vw;
       height: auto;
-      display: block;
     }
+
+    /* FIXIERTE CONTROLS direkt unter der Überschrift */
     .controls {
       position: fixed;
-      top: 150px; /* direkt unter der Überschrift */
+      top: 110px; /* unterhalb von "Busroute ziehen..." */
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -128,160 +134,187 @@
     </a>
   </div>
 
-  <div class="user-panel" id="userPanel">
+  <div id="userBlock">
     <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
     <span class="name" id="userName"></span>
-    <div class="logout-menu" id="logoutMenu">
+    <div id="logoutMenu">
       <button onclick="logout()">🚪 Log out</button>
     </div>
   </div>
 
   <h2>Busroute ziehen und Drop berechnen</h2>
 
-  <div id="mapContainer">
-    <canvas id="mapCanvas" width="900" height="900"></canvas>
-  </div>
-
   <div class="controls">
     <button onclick="calculateDrops()">🎯 FIND BEST DROP</button>
     <button onclick="resetRoute()">🔄 Reset</button>
   </div>
 
+  <div id="mapContainer">
+    <canvas id="mapCanvas" width="900" height="900"></canvas>
+  </div>
+
   <script>
+    // ----- Discord Login & User-Panel -----
     async function fetchUser() {
       const token = localStorage.getItem('discord_token');
-      if (!token) {
-        window.location.href = 'index.html';
-        return;
-      }
+      if (!token) { window.location.href = 'index.html'; return; }
       const res = await fetch('https://discord.com/api/users/@me', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
-      if (!res.ok) {
-        localStorage.removeItem('discord_token');
-        window.location.href = 'index.html';
-        return;
-      }
+      if (!res.ok) { localStorage.removeItem('discord_token'); window.location = 'index.html'; return; }
       const user = await res.json();
-      document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
-      document.getElementById('userAvatar').src = 
+      document.getElementById('userName').textContent =
+        `${user.username}#${user.discriminator}`;
+      document.getElementById('userAvatar').src =
         `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
-      document.getElementById('userPanel').style.display = 'flex';
+      document.getElementById('userBlock').style.display = 'flex';
     }
     function logout() {
       localStorage.removeItem('discord_token');
-      window.location.href = 'index.html';
+      window.location = 'index.html';
     }
     window.onload = fetchUser;
 
-    const canvas = document.getElementById('mapCanvas'), ctx = canvas.getContext('2d');
-    const img = new Image();
+    // ----- Canvas & Drop-Logik -----
+    const canvas = document.getElementById('mapCanvas'),
+          ctx = canvas.getContext('2d'),
+          img = new Image();
     img.src = 'fortnite-dropmap/assets/map.png';
-    img.onerror = () => alert('Fehler: Karte konnte nicht geladen werden');
+    img.onerror = ()=>alert('Fehler: Karte konnte nicht geladen werden');
 
-    const dropmaps = JSON.parse(localStorage.getItem('dropmaps') || '[]'),
+    const dropmaps = JSON.parse(localStorage.getItem('dropmaps')||'[]'),
           idx = +localStorage.getItem('editingDropmapIndex'),
-          dropmap = dropmaps[idx] || { points: [] };
-    const route = [{ x: 150, y: 150 }, { x: 750, y: 750 }];
-    let scale = 1, ox = 0, oy = 0, dragStart = null, dragging = null, offX = 0, offY = 0, bestLine = null;
-    img.onload = draw;
+          dropmap = dropmaps[idx]||{points:[]},
+          route = [{x:150,y:150},{x:750,y:750}];
+    let scale=1, ox=0, oy=0, dragStart=null, dragging=null, offX=0, offY=0, bestLine=null;
 
+    img.onload = draw;
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
-      const d = e.deltaY > 0 ? -0.1 : 0.1;
-      const mx = (e.offsetX - ox) / scale, my = (e.offsetY - oy) / scale;
-      scale = Math.min(Math.max(0.5, scale + d), 3);
-      ox = e.offsetX - mx * scale;
-      oy = e.offsetY - my * scale;
+      const d = e.deltaY>0?-0.1:0.1,
+            mx = (e.offsetX-ox)/scale,
+            my = (e.offsetY-oy)/scale;
+      scale = Math.min(Math.max(0.5, scale+d), 3);
+      ox = e.offsetX - mx*scale;
+      oy = e.offsetY - my*scale;
       draw();
     });
-
     canvas.addEventListener('mousedown', e => {
-      dragStart = { x: e.clientX, y: e.clientY };
+      dragStart = {x: e.clientX, y: e.clientY};
       dragging = 'map';
       offX = e.clientX - ox;
       offY = e.clientY - oy;
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left - ox) / scale;
-      const y = (e.clientY - rect.top - oy) / scale;
-      route.forEach((pt, i) => {
-        if (Math.hypot(pt.x - x, pt.y - y) < 12) {
+      const rect = canvas.getBoundingClientRect(),
+            x = (e.clientX-rect.left-ox)/scale,
+            y = (e.clientY-rect.top-oy)/scale;
+      route.forEach((pt,i)=>{
+        if (Math.hypot(pt.x-x,pt.y-y)<12){
           dragging = i;
           offX = pt.x - x;
           offY = pt.y - y;
         }
       });
     });
-
     canvas.addEventListener('mousemove', e => {
       if (!dragStart) return;
-      if (dragging === 'map') {
+      if (dragging==='map') {
         ox = e.clientX - offX;
         oy = e.clientY - offY;
       } else {
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left - ox) / scale;
-        const y = (e.clientY - rect.top - oy) / scale;
-        route[dragging] = { x: x + offX, y: y + offY };
+        const rect = canvas.getBoundingClientRect(),
+              x = (e.clientX-rect.left-ox)/scale,
+              y = (e.clientY-rect.top-oy)/scale;
+        route[dragging] = { x: x+offX, y: y+offY };
       }
       draw();
     });
+    canvas.addEventListener('mouseup', ()=>{
+      dragStart = null; dragging = null;
+    });
 
-    canvas.addEventListener('mouseup', () => { dragStart = null; dragging = null; });
-
-    function drawArrowLine(a, b) {
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const len = Math.hypot(dx, dy), steps = Math.floor(len / 30), ang = Math.atan2(dy, dx);
-      for (let i = 0; i < steps; i++) {
-        const x = a.x + dx * (i / steps), y = a.y + dy * (i / steps);
-        ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
-        ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(5, 0); ctx.lineTo(-5, 5); ctx.closePath();
-        ctx.fillStyle = '#fff'; ctx.fill(); ctx.restore();
+    function drawArrowLine(a,b){
+      const dx=b.x-a.x, dy=b.y-a.y,
+            len=Math.hypot(dx,dy), steps = Math.floor(len/30),
+            ang = Math.atan2(dy,dx);
+      for(let i=0;i<steps;i++){
+        const x = a.x + dx*(i/steps),
+              y = a.y + dy*(i/steps);
+        ctx.save();
+        ctx.translate(x,y);
+        ctx.rotate(ang);
+        ctx.beginPath();
+        ctx.moveTo(-5,-5);
+        ctx.lineTo(5,0);
+        ctx.lineTo(-5,5);
+        ctx.closePath();
+        ctx.fillStyle='#fff';
+        ctx.fill();
+        ctx.restore();
       }
     }
 
-    function draw() {
+    function draw(){
       canvas.width = 900; canvas.height = 900;
-      ctx.setTransform(scale, 0, 0, scale, ox, oy);
-      ctx.clearRect(0, 0, 900, 900);
-      ctx.drawImage(img, 0, 0, 900, 900);
+      ctx.setTransform(scale,0,0,scale,ox,oy);
+      ctx.clearRect(0,0,900,900);
+      ctx.drawImage(img,0,0,900,900);
       drawArrowLine(route[0], route[1]);
       route.forEach(p => {
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, 2 * Math.PI); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle='#000';
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,10,0,2*Math.PI);
+        ctx.fill();
+        ctx.strokeStyle='#fff';
+        ctx.lineWidth=2;
+        ctx.stroke();
       });
-      dropmap.points.forEach(p => {
-        ctx.fillStyle = 'yellow';
-        ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI); ctx.fill();
-        ctx.strokeStyle = 'black'; ctx.lineWidth = 2; ctx.stroke();
+      dropmap.points.forEach(p=>{
+        ctx.fillStyle='yellow';
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,6,0,2*Math.PI);
+        ctx.fill();
+        ctx.strokeStyle='black';
+        ctx.lineWidth=2;
+        ctx.stroke();
       });
-      if (bestLine) {
-        const { best, bestDrop } = bestLine;
-        ctx.fillStyle = 'cyan'; ctx.beginPath(); ctx.arc(best.x, best.y, 8, 0, 2 * Math.PI); ctx.fill();
-        ctx.strokeStyle = 'cyan'; ctx.setLineDash([5, 5]);
-        ctx.beginPath(); ctx.moveTo(best.x, best.y); ctx.lineTo(bestDrop.x, bestDrop.y); ctx.stroke(); ctx.setLineDash([]);
+      if(bestLine){
+        const {best,bestDrop} = bestLine;
+        ctx.fillStyle='cyan';
+        ctx.beginPath();
+        ctx.arc(best.x,best.y,8,0,2*Math.PI);
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeStyle='cyan';
+        ctx.setLineDash([5,5]);
+        ctx.beginPath();
+        ctx.moveTo(best.x,best.y);
+        ctx.lineTo(bestDrop.x,bestDrop.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
     }
 
-    function resetRoute() {
-      route[0] = { x: 150, y: 150 };
-      route[1] = { x: 750, y: 750 };
-      bestLine = null;
+    function resetRoute(){
+      route[0]={x:150,y:150};
+      route[1]={x:750,y:750};
+      bestLine=null;
       draw();
     }
 
-    function calculateDrops() {
-      if (!dropmap.points.length) return;
-      const dx = route[1].x - route[0].x, dy = route[1].y - route[0].y;
-      const len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
-      let best = null, bestDrop = null, bestDist = Infinity;
-      dropmap.points.forEach(p => {
-        const px = p.x - route[0].x, py = p.y - route[0].y;
-        const proj = px * ux + py * uy;
-        const projPt = { x: route[0].x + ux * proj, y: route[0].y + uy * proj };
-        const dist = Math.hypot(projPt.x - p.x, projPt.y - p.y);
-        if (dist < bestDist) { bestDist = dist; best = projPt; bestDrop = p; }
+    function calculateDrops(){
+      if(!dropmap.points.length) return;
+      const dx = route[1].x-route[0].x,
+            dy = route[1].y-route[0].y,
+            len = Math.hypot(dx,dy),
+            ux = dx/len, uy = dy/len;
+      let bestDist = Infinity, best=null, bestDrop=null;
+      dropmap.points.forEach(p=>{
+        const px = p.x-route[0].x,
+              py = p.y-route[0].y,
+              proj = px*ux+py*uy,
+              projPt = { x: route[0].x+ux*proj, y: route[0].y+uy*proj },
+              dist = Math.hypot(projPt.x-p.x, projPt.y-p.y);
+        if(dist<bestDist){ bestDist=dist; best=projPt; bestDrop=p; }
       });
       bestLine = { best, bestDrop };
       draw();
