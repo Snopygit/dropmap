@@ -230,9 +230,7 @@
       document.getElementById('overlayPopup').style.display = 'block';
       const pop = document.getElementById('notWhitePopup');
       pop.style.display = 'flex';
-      requestAnimationFrame(() => {
-        pop.style.opacity = '1';
-      });
+      requestAnimationFrame(() => pop.style.opacity = '1');
     }
 
     function logout() {
@@ -242,7 +240,7 @@
 
     window.onload = fetchUser;
 
-    // --- Canvas & Drop‑Logik (wie gehabt) ---
+    // --- Canvas & Drop‑Logik ---
     const canvas = document.getElementById('mapCanvas'),
           ctx    = canvas.getContext('2d'),
           img    = new Image();
@@ -351,12 +349,12 @@
       });
       if (bestLine) {
         const { best,bestDrop } = bestLine;
-        ctx.fillStyle='cyan';
+        // jetzt blasser:
+        ctx.fillStyle='rgba(0,255,255,0.3)';
         ctx.beginPath();
         ctx.arc(best.x,best.y,8,0,2*Math.PI);
         ctx.fill();
-        ctx.stroke();
-        ctx.strokeStyle='cyan';
+        ctx.strokeStyle='rgba(0,255,255,0.6)';
         ctx.setLineDash([5,5]);
         ctx.beginPath();
         ctx.moveTo(best.x,best.y);
