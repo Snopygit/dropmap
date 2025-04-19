@@ -24,8 +24,6 @@
       font-weight: bold; font-size: 18px; color: white;
       text-decoration: none;
     }
-
-    /* User‑Block */
     #userBlock {
       position: fixed;
       top: 10px; right: 20px;
@@ -62,29 +60,13 @@
       cursor: pointer;
       font-weight: bold;
     }
-
     h2 {
       margin-top: 80px;
       text-align: center;
     }
-
-    #mapContainer {
-      margin-top: 100px;
-      display: flex;
-      justify-content: center;
-    }
-    #mapCanvas {
-      border: 2px solid #333;
-      border-radius: 10px;
-      cursor: grab;
-      max-width: 90vw;
-      height: auto;
-    }
-
-    /* Controls unter der Überschrift, fixiert */
     .controls {
       position: fixed;
-      top: 140px; /* unter H2 */
+      top: 140px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -103,6 +85,58 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       display: flex; align-items: center; gap: 8px;
     }
+    #mapContainer {
+      margin-top: 180px;
+      display: flex;
+      justify-content: center;
+    }
+    #mapCanvas {
+      border: 2px solid #333;
+      border-radius: 10px;
+      cursor: grab;
+      max-width: 90vw;
+      height: auto;
+    }
+    /* Not‑whitelisted Popup */
+    #overlayPopup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      z-index: 2000;
+    }
+    #notWhitePopup {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      background: #2C2F33;
+      padding: 30px 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px 5px #7289DA;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2001;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #notWhitePopup p {
+      margin: 0 0 20px;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+    }
+    #notWhitePopup button {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -112,28 +146,37 @@
       <span class="home-text">Home</span>
     </a>
   </div>
-
   <div id="userBlock">
     <img id="userAvatar" src="fortnite-dropmap/assets/discord.png" alt="Avatar">
-    <span class="name" id="userName">Gast</span>
+    <span class="name" id="userName"></span>
     <div id="logoutMenu">
       <button onclick="logout()">🚪 Log out</button>
     </div>
   </div>
-
   <h2>Busroute ziehen und Drop berechnen</h2>
-
   <div class="controls">
     <button onclick="calculateDrops()">🎯 FIND BEST DROP</button>
     <button onclick="resetRoute()">🔄 Reset</button>
   </div>
-
   <div id="mapContainer">
     <canvas id="mapCanvas" width="900" height="900"></canvas>
   </div>
 
+  <!-- Not‑whitelisted Popup -->
+  <div id="overlayPopup"></div>
+  <div id="notWhitePopup">
+    <p>Du bist nicht whitelisted!</p>
+    <button onclick="logout()">Log mich aus</button>
+  </div>
+
   <script>
-    // --- Discord‑Login & User Panel ---
+    // Whitelist‑IDs
+    const WHITELIST = [
+      '1221451449695735884',
+      '644602114256928789',
+      '868581285277347920'
+    ];
+
     async function fetchUser() {
       const token = localStorage.getItem('discord_token');
       if (!token) return window.location = 'index.html';
@@ -145,33 +188,49 @@
         return window.location = 'index.html';
       }
       const user = await res.json();
-      document.getElementById('userName').textContent = `${user.username}#${user.discriminator}`;
+      // Whitelist‑Check
+      if (!WHITELIST.includes(user.id)) {
+        showNotWhitelistedPopup();
+        return;
+      }
+      // Zeige User‑Block
+      document.getElementById('userName').textContent =
+        `${user.username}#${user.discriminator}`;
       document.getElementById('userAvatar').src =
         `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
-      document.getElementById('userBlock').style.display = 'flex';
+      const ub = document.getElementById('userBlock');
+      ub.style.display = 'flex';
 
-      // Hover‐Logik mit Verzögerung
-      const block = document.getElementById('userBlock');
-      const menu  = document.getElementById('logoutMenu');
+      // Logout‑Hover Logik
+      const menu = document.getElementById('logoutMenu');
       let hideTimeout;
-
-      block.addEventListener('mouseenter', () => {
+      ub.addEventListener('mouseenter', () => {
         clearTimeout(hideTimeout);
         menu.style.display = 'block';
         menu.style.opacity = '1';
       });
-      block.addEventListener('mouseleave', () => {
-        hideTimeout = setTimeout(()=>{
+      ub.addEventListener('mouseleave', () => {
+        hideTimeout = setTimeout(() => {
           menu.style.opacity = '0';
-          setTimeout(()=> menu.style.display = 'none', 300);
+          setTimeout(() => menu.style.display = 'none', 300);
         }, 1500);
       });
       menu.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
       menu.addEventListener('mouseleave', () => {
-        hideTimeout = setTimeout(()=>{
+        hideTimeout = setTimeout(() => {
           menu.style.opacity = '0';
-          setTimeout(()=> menu.style.display = 'none', 300);
+          setTimeout(() => menu.style.display = 'none', 300);
         }, 1500);
+      });
+    }
+
+    function showNotWhitelistedPopup() {
+      document.body.classList.add('no-scroll');
+      document.getElementById('overlayPopup').style.display = 'block';
+      const pop = document.getElementById('notWhitePopup');
+      pop.style.display = 'flex';
+      requestAnimationFrame(() => {
+        pop.style.opacity = '1';
       });
     }
 
@@ -182,7 +241,7 @@
 
     window.onload = fetchUser;
 
-    // --- Canvas & Drop‑Logik ---
+    // --- Canvas & Drop‑Logik (wie gehabt) ---
     const canvas = document.getElementById('mapCanvas'),
           ctx    = canvas.getContext('2d'),
           img    = new Image();
@@ -210,7 +269,7 @@
 
     canvas.addEventListener('mousedown', e=>{
       dragStart = { x:e.clientX, y:e.clientY };
-      dragging = 'map';
+      dragging  = 'map';
       offX = e.clientX - ox; offY = e.clientY - oy;
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX-rect.left-ox)/scale,
@@ -218,8 +277,8 @@
       route.forEach((pt,i)=>{
         if (Math.hypot(pt.x-x,pt.y-y)<12) {
           dragging = i;
-          offX = pt.x - x;
-          offY = pt.y - y;
+          offX = pt.x-x;
+          offY = pt.y-y;
         }
       });
     });
@@ -270,9 +329,7 @@
       ctx.setTransform(scale,0,0,scale,ox,oy);
       ctx.clearRect(0,0,900,900);
       ctx.drawImage(img,0,0,900,900);
-
       drawArrowLine(route[0], route[1]);
-
       route.forEach(p=>{
         ctx.fillStyle='#000';
         ctx.beginPath();
@@ -282,7 +339,6 @@
         ctx.lineWidth=2;
         ctx.stroke();
       });
-
       dropmap.points.forEach(p=>{
         ctx.fillStyle='yellow';
         ctx.beginPath();
@@ -292,7 +348,6 @@
         ctx.lineWidth=2;
         ctx.stroke();
       });
-
       if (bestLine) {
         const { best,bestDrop } = bestLine;
         ctx.fillStyle='cyan';
