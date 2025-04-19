@@ -6,36 +6,63 @@
   <style>
     body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
     body.no-scroll { overflow: hidden; }
+
     /* Header */
     .header {
-      position: fixed; top: 0; left: 0; width: 100%; height: 50px;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px; background: #111; z-index: 1000;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: #111;
       box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+      z-index: 1000;
     }
-    .header-left { display: flex; align-items: center; gap: 8px; }
-    .header-left img.logo { width: 32px; height: 32px; border-radius: 4px; }
-    .header-left .home-text { font-weight: bold; font-size: 18px; color: white; }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-left img.logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+    }
+    .header-left .home-text {
+      font-weight: bold;
+      font-size: 18px;
+      color: white;
+      text-decoration: none;
+    }
 
     /* User Panel */
     .user-panel {
-      position: relative;
-      display: none;
+      display: none;        /* nur sichtbar, wenn eingeloggt */
       align-items: center;
       gap: 8px;
       background: #222;
       padding: 5px 10px;
       border-radius: 8px;
       cursor: pointer;
+      margin-right: 20px;   /* Abstand vom rechten Rand */
     }
-    .user-panel img { width: 32px; height: 32px; border-radius: 50%; }
-    .user-panel .name { font-weight: bold; color: white; }
+    .user-panel img {
+      width: 32px; height: 32px; border-radius: 50%;
+    }
+    .user-panel .name {
+      font-weight: bold; color: white;
+    }
     .logout-menu {
-      position: absolute; top: 110%; right: 0;
-      background: #222; padding: 8px;
+      position: absolute;
+      top: 110%; right: 0;
+      background: #222;
+      padding: 8px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      display: none; opacity: 0;
+      display: none;
+      opacity: 0;
       transition: opacity 0.3s ease;
     }
     .logout-menu button {
@@ -46,7 +73,8 @@
     }
     .user-panel:hover .logout-menu,
     .logout-menu:hover {
-      display: block; opacity: 1;
+      display: block;
+      opacity: 1;
     }
 
     /* Titel & Save-Button */
@@ -58,7 +86,7 @@
       font-size: 16px; cursor: pointer;
     }
 
-    /* Karte & Marker-Tools */
+    /* Map & Marker-Tools */
     #mapContainer { position: relative; margin-bottom: 30px; }
     canvas { border: 2px solid #333; border-radius: 10px; cursor: grab; }
     .side-controls {
@@ -80,15 +108,14 @@
       cursor: grab; z-index: 50;
     }
     .context-menu {
-      position: absolute; background: #222;
-      padding: 8px; border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      position: absolute; background: #222; padding: 8px;
+      border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.5);
       display: none; z-index: 1000;
     }
     .context-menu button {
-      display: block; width: 100%;
-      background: none; color: white; border: none;
-      padding: 4px 8px; text-align: left; cursor: pointer;
+      display: block; width: 100%; background: none;
+      color: white; border: none; padding: 4px 8px;
+      text-align: left; cursor: pointer;
     }
 
     /* Popup Overlay & Modal */
@@ -128,6 +155,7 @@
     }
   </style>
 </head>
+
 <body>
   <!-- Header -->
   <div class="header">
@@ -137,7 +165,8 @@
         <span class="home-text">Home</span>
       </a>
     </div>
-    <!-- User-Panel -->
+
+    <!-- User Panel -->
     <div class="user-panel" id="userPanel">
       <img id="userAvatar" src="" alt="Avatar">
       <span class="name" id="userName"></span>
@@ -147,13 +176,13 @@
     </div>
   </div>
 
-  <!-- Titel & Speichern -->
+  <!-- Titel & Save-Button -->
   <h2>Dropmap bearbeiten</h2>
   <div class="controls">
     <button onclick="showPopup()">💾 Dropmap speichern</button>
   </div>
 
-  <!-- Map & Marker -->
+  <!-- Map & Marker-Tools -->
   <div id="mapContainer">
     <canvas id="mapCanvas" width="900" height="900"></canvas>
     <div class="context-menu" id="contextMenu">
@@ -177,7 +206,7 @@
   </div>
 
   <script>
-    // ---- Discord-Login & User anzeigen ----
+    // ---- Discord Login & User Fetch ----
     async function fetchUser() {
       const token = localStorage.getItem('discord_token');
       if (!token) return;
@@ -187,7 +216,6 @@
         });
         if (!res.ok) throw new Error();
         const user = await res.json();
-        // Avatar & Name setzen
         document.getElementById('userAvatar').src =
           `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
         document.getElementById('userName').textContent =
@@ -201,7 +229,8 @@
       localStorage.removeItem('discord_token');
       window.location.href = 'index.html';
     }
-    // Hover‑Delay für Logout‑Menü
+
+    // Hover-Delay für Logout
     let hideTimer;
     const up = document.getElementById('userPanel'),
           lm = document.getElementById('logoutMenu');
@@ -216,7 +245,7 @@
       }, 1500);
     });
 
-    // ---- Canvas & Map-Logik (wie gehabt) ----
+    // ---- Canvas & Map-Logik (unverändert) ----
     const canvas = document.getElementById('mapCanvas'),
           ctx    = canvas.getContext('2d'),
           img    = new Image();
@@ -224,18 +253,18 @@
     img.onload = draw;
     img.onerror= () => alert('Fehler: Karte konnte nicht geladen werden');
 
-    let dropmaps        = JSON.parse(localStorage.getItem('dropmaps')||'[]'),
-        editingIndex   = +localStorage.getItem('editingDropmapIndex'),
-        dropmap        = dropmaps[editingIndex] || { points: [] };
-    dropmap.points     = dropmap.points || [];
-    const route        = [{ x:150,y:150 },{ x:750,y:750 }];
+    let dropmaps      = JSON.parse(localStorage.getItem('dropmaps')||'[]'),
+        editingIndex = +localStorage.getItem('editingDropmapIndex'),
+        dropmap      = dropmaps[editingIndex] || { points: [] };
+    dropmap.points   = dropmap.points || [];
+    const route      = [{ x:150,y:150 },{ x:750,y:750 }];
     let scale=1, ox=0, oy=0, dragStart=null, dragging=null, offX=0, offY=0, bestLine=null;
 
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
       const d = e.deltaY>0?-0.1:0.1;
-      const mx=(e.offsetX-ox)/scale, my=(e.offsetY-oy)/scale;
-      scale = Math.min(Math.max(0.5, scale+d), 3);
+      const mx = (e.offsetX-ox)/scale, my = (e.offsetY-oy)/scale;
+      scale = Math.min(Math.max(0.5, scale + d), 3);
       ox = e.offsetX - mx*scale; oy = e.offsetY - my*scale;
       draw();
     });
@@ -244,10 +273,10 @@
       dragging  = 'map';
       offX = e.clientX - ox; offY = e.clientY - oy;
       const r = canvas.getBoundingClientRect(),
-            x = (e.clientX-r.left-ox)/scale,
-            y = (e.clientY-r.top-oy)/scale;
+            x = (e.clientX - r.left - ox)/scale,
+            y = (e.clientY - r.top  - oy)/scale;
       route.forEach((pt,i) => {
-        if (Math.hypot(pt.x-x,pt.y-y)<12) {
+        if (Math.hypot(pt.x-x,pt.y-y) < 12) {
           dragging = i;
           offX = pt.x - x; offY = pt.y - y;
         }
@@ -259,15 +288,13 @@
         ox = e.clientX - offX; oy = e.clientY - offY;
       } else {
         const r = canvas.getBoundingClientRect(),
-              x=(e.clientX-r.left-ox)/scale,
-              y=(e.clientY-r.top-oy)/scale;
+              x = (e.clientX - r.left - ox)/scale,
+              y = (e.clientY - r.top  - oy)/scale;
         route[dragging] = { x:x+offX, y:y+offY };
       }
       draw();
     });
-    canvas.addEventListener('mouseup', () => {
-      dragStart = null; dragging = null;
-    });
+    canvas.addEventListener('mouseup', () => { dragStart=null; dragging=null; });
 
     function drawArrow(a,b) {
       const dx=b.x-a.x, dy=b.y-a.y,
@@ -275,8 +302,7 @@
             steps=Math.floor(len/30),
             ang=Math.atan2(dy,dx);
       for (let i=0; i<steps; i++){
-        const x=a.x+dx*(i/steps),
-              y=a.y+dy*(i/steps);
+        const x=a.x+dx*(i/steps), y=a.y+dy*(i/steps);
         ctx.save();
         ctx.translate(x,y);
         ctx.rotate(ang);
@@ -290,60 +316,47 @@
       }
     }
     function draw() {
-      canvas.width=900; canvas.height=900;
+      canvas.width = 900; canvas.height = 900;
       ctx.setTransform(scale,0,0,scale,ox,oy);
       ctx.clearRect(0,0,900,900);
       ctx.drawImage(img,0,0,900,900);
-      // Busroute
       drawArrow(route[0],route[1]);
-      route.forEach(p=>{
-        ctx.fillStyle='#000';
-        ctx.beginPath(); ctx.arc(p.x,p.y,10,0,2*Math.PI); ctx.fill();
+      route.forEach(p => {
+        ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(p.x,p.y,10,0,2*Math.PI); ctx.fill();
         ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
       });
-      // Marker
-      dropmap.points.forEach(p=>{
-        ctx.fillStyle='yellow';
-        ctx.beginPath(); ctx.arc(p.x,p.y,6,0,2*Math.PI); ctx.fill();
+      dropmap.points.forEach(p => {
+        ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,2*Math.PI); ctx.fill();
         ctx.strokeStyle='black'; ctx.lineWidth=2; ctx.stroke();
       });
-      // Best Drop
       if (bestLine) {
         const { best, bestDrop } = bestLine;
-        ctx.fillStyle='cyan';
-        ctx.beginPath(); ctx.arc(best.x,best.y,8,0,2*Math.PI); ctx.fill();
-        ctx.strokeStyle='cyan';
-        ctx.setLineDash([5,5]);
-        ctx.beginPath();
-        ctx.moveTo(best.x,best.y);
-        ctx.lineTo(bestDrop.x,bestDrop.y);
-        ctx.stroke();
+        ctx.fillStyle='cyan'; ctx.beginPath(); ctx.arc(best.x,best.y,8,0,2*Math.PI); ctx.fill();
+        ctx.strokeStyle='cyan'; ctx.setLineDash([5,5]);
+        ctx.beginPath(); ctx.moveTo(best.x,best.y); ctx.lineTo(bestDrop.x,bestDrop.y); ctx.stroke();
         ctx.setLineDash([]);
       }
     }
     function resetRoute() {
-      route[0]={x:150,y:150}; route[1]={x:750,y:750};
-      bestLine=null; draw();
+      route[0]={x:150,y:150}; route[1]={x:750,y:750}; bestLine=null; draw();
     }
     function calculateDrops() {
       if (!dropmap.points.length) return;
-      const dx=route[1].x-route[0].x,
-            dy=route[1].y-route[0].y,
-            len=Math.hypot(dx,dy),
-            ux=dx/len, uy=dy/len;
+      const dx=route[1].x-route[0].x, dy=route[1].y-route[0].y,
+            len=Math.hypot(dx,dy), ux=dx/len, uy=dy/len;
       let bestDist=Infinity, best, bestDrop;
-      dropmap.points.forEach(p=>{
-        const px=p.x-route[0].x, py=p.y-route[0].y;
-        const proj=px*ux+py*uy;
-        const projPt={ x:route[0].x+ux*proj, y:route[0].y+uy*proj };
-        const d=Math.hypot(projPt.x-p.x,projPt.y-p.y);
+      dropmap.points.forEach(p => {
+        const px=p.x-route[0].x, py=p.y-route[0].y,
+              proj=px*ux+py*uy,
+              projPt={ x:route[0].x+ux*proj, y:route[0].y+uy*proj },
+              d=Math.hypot(projPt.x-p.x,projPt.y-p.y);
         if (d<bestDist) { bestDist=d; best=projPt; bestDrop=p; }
       });
       bestLine={ best, bestDrop };
       draw();
     }
 
-    // Save Popup
+    // Popup
     function showPopup() {
       document.body.classList.add('no-scroll');
       document.getElementById('overlay').style.display = 'block';
@@ -351,7 +364,7 @@
       setTimeout(() => document.getElementById('popup').style.opacity = '1', 10);
     }
     function hidePopup(e) {
-      if (e.target.id === 'overlay') closePopup();
+      if (e.target.id==='overlay') closePopup();
     }
     function closePopup() {
       document.getElementById('popup').style.opacity = '0';
@@ -362,14 +375,14 @@
       }, 300);
     }
     function saveDropmapName() {
-      const v = document.getElementById('dropmapName').value.trim() || 'Neue Dropmap';
-      dropmap.name = v;
+      const name = document.getElementById('dropmapName').value.trim()||'Neue Dropmap';
+      dropmap.name = name;
       dropmaps[editingIndex] = dropmap;
       localStorage.setItem('dropmaps', JSON.stringify(dropmaps));
       window.location.href = 'index.html';
     }
 
-    // Init
+    // initialize
     window.addEventListener('load', fetchUser);
   </script>
 </body>
